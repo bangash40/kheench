@@ -14,11 +14,12 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 |---|---|
 | App shell: theme (light/dark/system), animated splash, bottom navigation | Done |
 | Home, Status, Downloads, Tools and Settings screens (layout) | Done |
+| Bundled download engine (yt-dlp + FFmpeg) with version shown and in-app update | Done |
 | Paste a link → preview → pick from every video/audio quality | Planned |
 | Background download manager with progress, pause, cancel, retry and history | Planned |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
-| Settings: default quality, audio format, parallel downloads, in-app engine update | Planned |
+| Settings: default quality, audio format, parallel downloads | Planned |
 | Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
 | Status splitter: cut long videos into status-length parts and share them in order | Planned |
@@ -27,8 +28,9 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 
 - **Flutter** (Dart 3) for the UI
 - **Riverpod** for state, **go_router** for navigation
-- **Kotlin** native layer on Android for the download engine, status folder access and video splitting (planned)
-- **yt-dlp + FFmpeg** via `youtubedl-android`, updatable from inside the app (planned)
+- **Kotlin** native layer on Android, talking to Flutter over a `MethodChannel` (`kheench/engine`)
+- **yt-dlp + FFmpeg** via [`youtubedl-android`](https://github.com/JunkFood02/youtubedl-android), bundled in the APK and updatable from Settings
+- Planned native pieces: status folder access and video splitting
 - Fonts: **Bricolage Grotesque** (display) and **DM Sans** (body), bundled in the app so nothing is fetched at runtime
 
 ## Requirements
@@ -63,6 +65,7 @@ flutter test
 ```
 lib/
   app/          theme, router, navigation shell, splash, motion helpers
+  engine/       Dart side of the native download engine bridge
   features/
     link/       home screen: paste a link, supported sites, recent items
     downloads/  download queue and history
@@ -71,13 +74,13 @@ lib/
     settings/   app settings
   widgets/      shared widgets and the Kheench logo mark
 assets/fonts/   bundled font files
-android/        Android app, launcher icon and launch screen
+android/        Android app, launcher icon, launch screen and the Kotlin engine bridge
 ```
 
 ## Privacy
 
 - No analytics and no tracking.
-- Network requests go only to the sites you download from.
+- Network requests go only to the sites you download from, plus GitHub when you tap "Update" on the download engine (new yt-dlp releases are published there).
 - Account logins (when added) use the platform's own login page; Kheench never sees or stores your password, and saved sessions stay in the app's private storage.
 
 ## Responsible use

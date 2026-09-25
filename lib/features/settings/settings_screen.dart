@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
+import '../../engine/engine.dart';
 import 'settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -73,11 +74,7 @@ class SettingsScreen extends ConsumerWidget {
                   value: '2',
                 ),
                 const Divider(indent: 16, endIndent: 16),
-                _InfoTile(
-                  icon: Icons.system_update_alt_rounded,
-                  title: 'Download engine',
-                  value: 'Not installed yet',
-                ),
+                const _EngineTile(),
               ],
             ),
           ),
@@ -106,6 +103,71 @@ class _InfoTile extends StatelessWidget {
       leading: Icon(icon, color: k.teal),
       title: Text(title, style: Theme.of(context).textTheme.titleSmall),
       trailing: Text(value, style: Theme.of(context).textTheme.bodySmall),
+    );
+  }
+}
+
+class _EngineTile extends ConsumerStatefulWidget {
+  const _EngineTile();
+
+  @override
+  ConsumerState<_EngineTile> createState() => _EngineTileState();
+}
+
+class _EngineTileState extends ConsumerState<_EngineTile> {
+  bool _updating = false;
+
+  Future<void> _update() async {
+    setState(() => _updating = true);
+    final messenger = ScaffoldMessenger.of(context);
+    String message;
+    try {
+      final result = await ref.read(engineProvider).update();
+      ref.invalidate(engineVersionProvider);
+      final version = await ref.read(engineVersionProvider.future);
+      message = result == EngineUpdateResult.updated
+          ? 'Engine updated to $version'
+          : 'Engine is already up to date';
+    } on EngineException catch (e) {
+      message = 'Update failed: ${e.message}';
+    }
+    if (!mounted) return;
+    setState(() => _updating = false);
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final k = context.k;
+    final version = ref.watch(engineVersionProvider);
+    final subtitle = switch (version) {
+      AsyncData(:final value) => 'yt-dlp $value',
+      AsyncError() => 'Not available',
+      _ => 'Preparing…',
+    };
+
+    return ListTile(
+      minTileHeight: 64,
+      leading: Icon(Icons.system_update_alt_rounded, color: k.teal),
+      title: Text(
+        'Download engine',
+        style: Theme.of(context).textTheme.titleSmall,
+      ),
+      subtitle: Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+      trailing: _updating
+          ? const SizedBox.square(
+              dimension: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: KColors.saffron,
+              ),
+            )
+          : TextButton(
+              onPressed: version.isLoading ? null : _update,
+              child: const Text('Update'),
+            ),
     );
   }
 }

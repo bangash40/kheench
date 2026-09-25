@@ -28,6 +28,14 @@ android {
         versionName = flutter.versionName
     }
 
+    packaging {
+        // yt-dlp's bundled Python and FFmpeg run as native binaries and must be
+        // extracted to disk, so native libs cannot stay compressed in the APK.
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
@@ -45,4 +53,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    val ytdlVersion = "0.18.1"
+    implementation("io.github.junkfood02.youtubedl-android:library:$ytdlVersion")
+    implementation("io.github.junkfood02.youtubedl-android:ffmpeg:$ytdlVersion")
 }

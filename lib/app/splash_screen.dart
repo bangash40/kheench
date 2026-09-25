@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../engine/engine.dart';
 import '../widgets/kheench_mark.dart';
 import 'motion.dart';
 import 'theme.dart';
 
 /// Mark scales in, arrow drops into the tray, wordmark letters stagger in,
 /// then the app fades to Home. About 1.4 s in total.
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with SingleTickerProviderStateMixin {
   static const _word = 'Kheench';
 
@@ -40,6 +42,13 @@ class _SplashScreenState extends State<SplashScreen>
     parent: _c,
     curve: const Interval(0.1, 1, curve: Curves.easeInOut),
   );
+
+  @override
+  void initState() {
+    super.initState();
+    // Start unpacking the download engine while the splash plays.
+    ref.read(engineVersionProvider.future).ignore();
+  }
 
   @override
   void didChangeDependencies() {
