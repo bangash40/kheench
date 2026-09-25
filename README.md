@@ -65,7 +65,7 @@ flutter test
 ```
 lib/
   app/          theme, router, navigation shell, splash, motion helpers
-  engine/       Dart side of the native download engine bridge
+  engine/       native engine bridge, yt-dlp format parsing, error messages
   features/
     link/       home screen: paste a link, supported sites, recent items
     downloads/  download queue and history
@@ -73,6 +73,7 @@ lib/
     tools/      splitter, Instagram photos, stories, profile pictures, accounts
     settings/   app settings
   widgets/      shared widgets and the Kheench logo mark
+test/           unit and widget tests; fixtures/ holds trimmed yt-dlp JSON samples
 assets/fonts/   bundled font files
 android/        Android app, launcher icon, launch screen and the Kotlin engine bridge
 ```
