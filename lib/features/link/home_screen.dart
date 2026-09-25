@@ -1,22 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/motion.dart';
 import '../../app/theme.dart';
+import '../../engine/download_choice.dart';
+import '../../engine/engine.dart';
 import '../../widgets/common.dart';
 import '../../widgets/kheench_mark.dart';
+import 'link_lookup.dart';
+import 'preview_card.dart';
+import 'quality_sheet.dart';
 
-class HomeScreen extends StatefulWidget {
+/// First http(s) link in [text]; apps often share "Look at this https://…".
+String? extractUrl(String text) {
+  final match = RegExp(r'https?://[^\s<>"]+').firstMatch(text);
+  if (match == null) return null;
+  final url = match.group(0)!.replaceAll(RegExp(r'[.,;:!?)\]]+$'), '');
+  final uri = Uri.tryParse(url);
+  return uri != null && uri.host.contains('.') ? url : null;
+}
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _controller = TextEditingController();
   String? _error;
+  bool _updatingEngine = false;
 
   static const _sites = [
     'YouTube',
@@ -33,38 +49,86 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  void _snack(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Future<void> _paste() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text?.trim() ?? '';
     if (!mounted) return;
     if (text.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Clipboard is empty')));
+      _snack('Clipboard is empty');
       return;
     }
     setState(() {
-      _controller.text = text;
+      _controller.text = extractUrl(text) ?? text;
       _error = null;
     });
   }
 
   void _showQualities() {
     FocusScope.of(context).unfocus();
-    final uri = Uri.tryParse(_controller.text.trim());
-    final valid =
-        uri != null &&
-        (uri.scheme == 'http' || uri.scheme == 'https') &&
-        uri.host.isNotEmpty;
+    final url = extractUrl(_controller.text.trim());
     setState(
-      () => _error = valid ? null : 'Enter a link starting with https://',
+      () => _error = url == null ? 'Enter a link starting with https://' : null,
     );
-    if (valid) showComingSoon(context, 'The quality picker');
+    if (url == null) return;
+    if (_controller.text != url) _controller.text = url;
+    ref.read(linkLookupProvider.notifier).fetch(url);
+  }
+
+  Future<void> _openSheet() async {
+    final state = ref.read(linkLookupProvider);
+    if (state is! LookupLoaded) return;
+    final choice = await showQualitySheet(context, state.info);
+    if (choice == null || !mounted) return;
+    _startDownload(choice);
+  }
+
+  void _startDownload(DownloadChoice choice) {
+    // The download manager is wired up next; for now confirm the pick.
+    _snack('Picked ${choice.label}. Downloading is coming in the next update');
+  }
+
+  Future<void> _updateEngineAndRetry() async {
+    setState(() => _updatingEngine = true);
+    try {
+      await ref.read(engineProvider).update();
+      ref.invalidate(engineVersionProvider);
+    } on EngineException catch (e) {
+      if (mounted) _snack('Update failed: ${e.message}');
+    }
+    if (!mounted) return;
+    setState(() => _updatingEngine = false);
+    _retry();
+  }
+
+  void _retry() {
+    final state = ref.read(linkLookupProvider);
+    final url = switch (state) {
+      LookupFailed(:final url) || LookupLoaded(:final url) => url,
+      _ => null,
+    };
+    if (url != null) ref.read(linkLookupProvider.notifier).fetch(url);
+  }
+
+  void _clear() {
+    ref.read(linkLookupProvider.notifier).clear();
+    _controller.clear();
   }
 
   @override
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
+    final lookup = ref.watch(linkLookupProvider);
+
+    // Open the quality sheet as soon as a link finishes loading.
+    ref.listen(linkLookupProvider, (previous, next) {
+      if (next is LookupLoaded && previous is LookupLoading) _openSheet();
+    });
 
     return SafeArea(
       bottom: false,
@@ -92,11 +156,20 @@ class _HomeScreenState extends State<HomeScreen> {
           _HeroCard(
             controller: _controller,
             error: _error,
+            loading: lookup is LookupLoading,
             onPaste: _paste,
             onSubmit: _showQualities,
             onChanged: () {
               if (_error != null) setState(() => _error = null);
             },
+          ),
+          PreviewArea(
+            state: lookup,
+            onChooseQuality: _openSheet,
+            onRetry: _retry,
+            onUpdateEngine: _updateEngineAndRetry,
+            onClear: _clear,
+            updatingEngine: _updatingEngine,
           ),
           const SizedBox(height: 20),
           Wrap(
@@ -136,10 +209,12 @@ class _HeroCard extends StatelessWidget {
     required this.onPaste,
     required this.onSubmit,
     required this.onChanged,
+    this.loading = false,
   });
 
   final TextEditingController controller;
   final String? error;
+  final bool loading;
   final VoidCallback onPaste;
   final VoidCallback onSubmit;
   final VoidCallback onChanged;
@@ -259,9 +334,21 @@ class _HeroCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: onSubmit,
-              icon: const Icon(Icons.search_rounded),
-              label: const Text('Show qualities'),
+              onPressed: loading ? null : onSubmit,
+              style: FilledButton.styleFrom(
+                disabledBackgroundColor: KColors.saffron.withValues(alpha: 0.6),
+                disabledForegroundColor: KColors.ink,
+              ),
+              icon: loading
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: KColors.ink,
+                      ),
+                    )
+                  : const Icon(Icons.search_rounded),
+              label: Text(loading ? 'Reading link…' : 'Show qualities'),
             ),
           ),
         ],

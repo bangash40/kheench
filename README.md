@@ -15,8 +15,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | App shell: theme (light/dark/system), animated splash, bottom navigation | Done |
 | Home, Status, Downloads, Tools and Settings screens (layout) | Done |
 | Bundled download engine (yt-dlp + FFmpeg) with version shown and in-app update | Done |
-| Paste a link → preview → pick from every video/audio quality | Planned |
-| Background download manager with progress, pause, cancel, retry and history | Planned |
+| Paste a link → preview → pick from every video/audio quality, with clear error messages | Done |
+| Download the picked quality: background downloads with progress, pause, cancel, retry and history | Planned |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |
@@ -67,7 +67,7 @@ lib/
   app/          theme, router, navigation shell, splash, motion helpers
   engine/       native engine bridge, yt-dlp format parsing, error messages
   features/
-    link/       home screen: paste a link, supported sites, recent items
+    link/       home screen, link preview and the quality picker sheet
     downloads/  download queue and history
     status/     WhatsApp status saver
     tools/      splitter, Instagram photos, stories, profile pictures, accounts
