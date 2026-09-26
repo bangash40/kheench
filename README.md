@@ -20,7 +20,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
 | Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
-| WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
+| WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails | Done |
+| Save statuses: preview, multi-select, save to `Movies/Kheench/Status` and `Pictures/Kheench/Status` | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |
 | Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
@@ -34,12 +35,13 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 - **Kotlin** native layer on Android, talking to Flutter over a `MethodChannel` (`kheench/engine`) and an `EventChannel` for progress (`kheench/progress`)
 - **WorkManager** foreground workers run downloads in the background; **MediaStore** publishes finished files to shared storage
 - **yt-dlp + FFmpeg** via [`youtubedl-android`](https://github.com/JunkFood02/youtubedl-android), bundled in the APK and updatable from Settings
-- Planned native pieces: status folder access and video splitting
+- Status folder access through direct file access (Android 10 and older) or the system folder picker (Android 11+)
+- Planned native pieces: video splitting
 - Fonts: **Bricolage Grotesque** (display) and **DM Sans** (body), bundled in the app so nothing is fetched at runtime
 
 ## Requirements
 
-- Android 7.0 (API 24) or newer
+- Android 7.0 (API 24) or newer, ARM phones (64-bit or 32-bit)
 - Flutter 3.47+ / Dart 3.13+ to build
 
 ## Getting started

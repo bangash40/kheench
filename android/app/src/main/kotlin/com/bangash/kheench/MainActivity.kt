@@ -10,6 +10,7 @@ import io.flutter.embedding.engine.FlutterEngine
 
 class MainActivity : FlutterActivity() {
     private var files: FileChannel? = null
+    private var status: StatusChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -18,12 +19,23 @@ class MainActivity : FlutterActivity() {
             .register(messenger)
         ProgressBus.register(messenger)
         files = FileChannel(this).also { it.register(messenger) }
+        status = StatusChannel(this).also { it.register(messenger) }
     }
 
     @Deprecated("Needed for startIntentSenderForResult on older APIs")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (files?.onActivityResult(requestCode, resultCode) == true) return
+        if (status?.onActivityResult(requestCode, resultCode, data) == true) return
         super.onActivityResult(requestCode, resultCode, data)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        if (status?.onRequestPermissionsResult(requestCode, grantResults) == true) return
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
     }
 
     /** Notifications (Android 13+) and storage (Android 9 and older), asked once when needed. */

@@ -33,6 +33,9 @@ android {
         // extracted to disk, so native libs cannot stay compressed in the APK.
         jniLibs {
             useLegacyPackaging = true
+            // Phones are ARM; the engine's x86 builds only serve emulators and
+            // would add ~50 MB.
+            excludes += listOf("lib/x86/**", "lib/x86_64/**")
         }
     }
 
