@@ -5,6 +5,7 @@ import '../features/downloads/downloads_screen.dart';
 import '../features/link/home_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/status/status_screen.dart';
+import '../features/tools/splitter_screen.dart';
 import '../features/tools/tools_screen.dart';
 import 'shell.dart';
 import 'splash_screen.dart';
@@ -41,6 +42,10 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: '/tools',
                 builder: (_, _) => const ToolsScreen(),
                 routes: [
+                  GoRoute(
+                    path: 'splitter',
+                    builder: (_, _) => const SplitterScreen(),
+                  ),
                   GoRoute(
                     path: ':tool',
                     builder: (_, state) => ToolPlaceholderScreen(

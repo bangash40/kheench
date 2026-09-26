@@ -12,6 +12,7 @@ class MainActivity : FlutterActivity() {
     private var files: FileChannel? = null
     private var status: StatusChannel? = null
     private var accounts: AccountsChannel? = null
+    private var split: SplitChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -22,6 +23,7 @@ class MainActivity : FlutterActivity() {
         files = FileChannel(this).also { it.register(messenger) }
         status = StatusChannel(this).also { it.register(messenger) }
         accounts = AccountsChannel(this).also { it.register(messenger) }
+        split = SplitChannel(this).also { it.register(messenger) }
     }
 
     @Deprecated("Needed for startIntentSenderForResult on older APIs")
@@ -29,6 +31,7 @@ class MainActivity : FlutterActivity() {
         if (files?.onActivityResult(requestCode, resultCode) == true) return
         if (status?.onActivityResult(requestCode, resultCode, data) == true) return
         if (accounts?.onActivityResult(requestCode, resultCode) == true) return
+        if (split?.onActivityResult(requestCode, resultCode, data) == true) return
         super.onActivityResult(requestCode, resultCode, data)
     }
 

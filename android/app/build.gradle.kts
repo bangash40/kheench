@@ -86,4 +86,7 @@ dependencies {
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:$ytdlVersion")
     implementation("androidx.work:work-runtime-ktx:2.12.0")
     implementation("androidx.core:core-ktx:1.17.0")
+    implementation("androidx.media3:media3-transformer:1.11.1")
+    implementation("androidx.media3:media3-effect:1.11.1")
+    implementation("androidx.media3:media3-common:1.11.1")
 }

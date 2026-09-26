@@ -25,7 +25,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Default quality downloads straight away (picker still one tap away), status auto-save, weekly engine update on Wi-Fi when idle | Done |
 | Log in to Instagram, Facebook, X and TikTok on their own login pages; downloads then use your account (log out any time) | Done |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
-| Status splitter: cut long videos into status-length parts and share them in order | Planned |
+| Status splitter: pick a video (phone or downloads), part length 15/30/60 s or custom, trim, timeline, save to `Movies/Kheench/Split/<name>`, share all to WhatsApp in order | Done |
+| Splitter: shrink parts that are over WhatsApp's size limit | Planned |
 | TikTok videos with and without watermark (read through a hidden WebView, since TikTok blocks the engine's direct requests) | Done |
 | Faster link reading and download start (keep the engine loaded, reuse the lookup) | Planned |
 | Share links into Kheench from other apps, clipboard link detection | Planned |
@@ -39,7 +40,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 - **WorkManager** foreground workers run downloads in the background; **MediaStore** publishes finished files to shared storage
 - **yt-dlp + FFmpeg** via [`youtubedl-android`](https://github.com/JunkFood02/youtubedl-android), bundled in the APK and updatable from Settings
 - Status folder access through direct file access (Android 10 and older) or the system folder picker (Android 11+)
-- Planned native pieces: video splitting
+- **Media3 Transformer** for cutting videos into parts (only part edges are re-encoded)
 - Fonts: **Bricolage Grotesque** (display) and **DM Sans** (body), bundled in the app so nothing is fetched at runtime
 
 ## Requirements
