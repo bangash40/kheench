@@ -9,10 +9,13 @@ import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../engine/media_info.dart';
 import '../../engine/status_source.dart';
+import 'status_saver.dart';
+import 'status_screen.dart' show SavedBadge;
 
 /// Opens [items] full screen at [index]; swipe to move between them.
 Future<void> showStatusViewer(
   BuildContext context,
+  StatusApp app,
   List<StatusItem> items,
   int index,
 ) {
@@ -21,30 +24,51 @@ Future<void> showStatusViewer(
       opaque: true,
       transitionDuration: context.ms(200),
       reverseTransitionDuration: context.ms(150),
-      pageBuilder: (_, _, _) => StatusViewer(items: items, initialIndex: index),
+      pageBuilder: (_, _, _) =>
+          StatusViewer(app: app, items: items, initialIndex: index),
       transitionsBuilder: (_, animation, _, child) =>
           FadeTransition(opacity: animation, child: child),
     ),
   );
 }
 
-class StatusViewer extends StatefulWidget {
+class StatusViewer extends ConsumerStatefulWidget {
   const StatusViewer({
     super.key,
+    required this.app,
     required this.items,
     required this.initialIndex,
   });
 
+  final StatusApp app;
   final List<StatusItem> items;
   final int initialIndex;
 
   @override
-  State<StatusViewer> createState() => _StatusViewerState();
+  ConsumerState<StatusViewer> createState() => _StatusViewerState();
 }
 
-class _StatusViewerState extends State<StatusViewer> {
+class _StatusViewerState extends ConsumerState<StatusViewer> {
   late final _pages = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
+  bool _saving = false;
+
+  Future<void> _save(StatusItem item) async {
+    setState(() => _saving = true);
+    var ok = false;
+    try {
+      ok = await ref.read(statusSaverProvider).save(widget.app, [item]) == 1;
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() => _saving = false);
+    if (!ok) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text("Couldn't save this status")),
+        );
+    }
+  }
 
   @override
   void dispose() {
@@ -55,6 +79,8 @@ class _StatusViewerState extends State<StatusViewer> {
   @override
   Widget build(BuildContext context) {
     final item = widget.items[_index];
+    final saved = (ref.watch(savedStatusHashesProvider).value ?? const {})
+        .contains(item.hashFor(widget.app));
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light.copyWith(
         statusBarColor: Colors.transparent,
@@ -124,6 +150,29 @@ class _StatusViewerState extends State<StatusViewer> {
                             ],
                           ),
                         ),
+                        if (saved)
+                          const Padding(
+                            padding: EdgeInsets.only(right: 12),
+                            child: SavedBadge(),
+                          )
+                        else
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: FilledButton.icon(
+                              onPressed: _saving ? null : () => _save(item),
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size(0, 40),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                              ),
+                              icon: const Icon(
+                                Icons.download_rounded,
+                                size: 20,
+                              ),
+                              label: Text(_saving ? 'Saving' : 'Save'),
+                            ),
+                          ),
                       ],
                     ),
                   ),

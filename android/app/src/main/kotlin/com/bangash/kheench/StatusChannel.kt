@@ -54,6 +54,9 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                 thumbnail(call.argument<String>("uri")!!, call.argument<String>("type")!!)
             }
             "localCopy" -> background(result) { localCopy(call.argument<String>("uri")!!) }
+            "save" -> background(result) {
+                save(call.argument<List<Map<String, Any?>>>("items").orEmpty())
+            }
             else -> result.notImplemented()
         }
     }
@@ -292,6 +295,33 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
         val h = src.height * THUMB_WIDTH / src.width
         return Bitmap.createScaledBitmap(src, THUMB_WIDTH, h, true).also {
             if (it != src) src.recycle()
+        }
+    }
+
+    // --- saving -----------------------------------------------------------
+
+    /** Copies statuses into Movies/Kheench/Status and Pictures/Kheench/Status. */
+    private fun save(items: List<Map<String, Any?>>): List<Map<String, Any?>> = items.map { item ->
+        val raw = item["uri"] as String
+        val type = item["type"] as String
+        val uri = Uri.parse(raw)
+        try {
+            val saved = MediaPublisher.publish(
+                activity,
+                open = {
+                    if (uri.scheme == "file") File(uri.path!!).inputStream()
+                    else activity.contentResolver.openInputStream(uri)
+                        ?: throw java.io.IOException("Can't read $raw")
+                },
+                name = item["name"] as String,
+                kind = if (type == "video") "video" else "photo",
+                subfolder = "Status",
+                sizeHint = (item["size"] as Number?)?.toLong() ?: 0L,
+            )
+            mapOf("uri" to raw, "ok" to true, "savedUri" to saved.uri, "path" to saved.path)
+        } catch (e: Exception) {
+            Log.w(TAG, "saving $raw failed", e)
+            mapOf("uri" to raw, "ok" to false, "error" to (e.message ?: e.toString()))
         }
     }
 

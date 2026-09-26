@@ -26,6 +26,9 @@ class StatusItem {
   final DateTime modified;
   final int size;
 
+  /// Identifies this status across refreshes, for the "Saved" badge.
+  String hashFor(StatusApp app) => '${app.name}|$name|$size';
+
   factory StatusItem.fromMap(Map<Object?, Object?> m) => StatusItem(
     uri: m['uri'] as String,
     name: m['name'] as String,
@@ -114,6 +117,28 @@ class StatusSource {
       m['path'] as String,
       ms == null ? null : Duration(milliseconds: ms),
     );
+  }
+
+  /// Copies [items] into Movies/Kheench/Status and Pictures/Kheench/Status.
+  /// Returns the uris that were saved.
+  Future<List<String>> save(List<StatusItem> items) async {
+    final results =
+        await _channel.invokeListMethod<Object?>('save', {
+          'items': [
+            for (final i in items)
+              {
+                'uri': i.uri,
+                'name': i.name,
+                'type': i.type.name,
+                'size': i.size,
+              },
+          ],
+        }) ??
+        [];
+    return [
+      for (final r in results.whereType<Map<Object?, Object?>>())
+        if (r['ok'] == true) r['uri'] as String,
+    ];
   }
 
   /// A local file path for showing [uri] full screen.

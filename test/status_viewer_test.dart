@@ -1,11 +1,16 @@
+import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kheench/app/theme.dart';
+import 'package:kheench/data/database.dart';
 import 'package:kheench/engine/status_source.dart';
 import 'package:kheench/features/status/status_viewer.dart';
 
 void main() {
+  driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
+
   testWidgets('close button and counter sit at the top of the screen', (
     tester,
   ) async {
@@ -26,9 +31,20 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
+        overrides: [
+          databaseProvider.overrideWith((ref) {
+            final db = AppDatabase(NativeDatabase.memory());
+            ref.onDispose(db.close);
+            return db;
+          }),
+        ],
         child: MaterialApp(
           theme: buildTheme(Brightness.light),
-          home: StatusViewer(items: items, initialIndex: 1),
+          home: StatusViewer(
+            app: StatusApp.whatsapp,
+            items: items,
+            initialIndex: 1,
+          ),
         ),
       ),
     );
@@ -38,5 +54,9 @@ void main() {
     expect(close.dy, lessThan(120));
     expect(find.text('2 of 3'), findsOneWidget);
     expect(find.text('2h ago'), findsOneWidget);
+    expect(find.text('Save'), findsOneWidget);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.pump(Duration.zero);
   });
 }

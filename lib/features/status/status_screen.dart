@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../engine/status_source.dart';
 import '../../engine/media_info.dart';
 import '../../widgets/common.dart';
+import 'status_saver.dart';
 import 'status_viewer.dart';
 
 class StatusScreen extends ConsumerStatefulWidget {
@@ -276,18 +277,84 @@ class _GrantCardState extends ConsumerState<_GrantCard> {
   }
 }
 
-class _StatusTabs extends ConsumerWidget {
+class _StatusTabs extends ConsumerStatefulWidget {
   const _StatusTabs({super.key, required this.app});
 
   final StatusApp app;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StatusTabs> createState() => _StatusTabsState();
+}
+
+class _StatusTabsState extends ConsumerState<_StatusTabs> {
+  /// Selected status uris; non-empty means selection mode.
+  final _selected = <String>{};
+  bool _saving = false;
+  TabController? _tabs;
+
+  StatusApp get app => widget.app;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final tabs = DefaultTabController.of(context);
+    if (tabs != _tabs) {
+      _tabs?.removeListener(_onTabChange);
+      _tabs = tabs..addListener(_onTabChange);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabs?.removeListener(_onTabChange);
+    super.dispose();
+  }
+
+  /// Selection belongs to one tab; switching tabs clears it.
+  void _onTabChange() {
+    if (_tabs!.indexIsChanging) setState(_selected.clear);
+  }
+
+  void _toggle(StatusItem item) => setState(() {
+    if (!_selected.remove(item.uri)) _selected.add(item.uri);
+  });
+
+  Future<void> _save(List<StatusItem> visible) async {
+    final picked = visible.where((s) => _selected.contains(s.uri)).toList();
+    setState(() => _saving = true);
+    var count = 0;
+    try {
+      count = await ref.read(statusSaverProvider).save(app, picked);
+    } catch (_) {}
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _selected.clear();
+    });
+    final failed = picked.length - count;
+    final message = failed == 0
+        ? 'Saved ${_plural(count)}'
+        : "Saved $count, $failed couldn't be saved";
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  static String _plural(int n) => n == 1 ? '1 status' : '$n statuses';
+
+  @override
+  Widget build(BuildContext context) {
     final k = context.k;
     final items = ref.watch(statusItemsProvider(app));
+    final saved =
+        ref.watch(savedStatusHashesProvider).value ?? const <String>{};
     final all = items.value ?? const <StatusItem>[];
     final videos = all.where((s) => s.type == StatusType.video).toList();
     final photos = all.where((s) => s.type == StatusType.photo).toList();
+    final visible = (_tabs?.index ?? 0) == 0 ? videos : photos;
+    final selecting = _selected.isNotEmpty;
+    final allSelected =
+        visible.isNotEmpty && visible.every((s) => _selected.contains(s.uri));
 
     Future<void> refresh() async {
       ref.invalidate(statusItemsProvider(app));
@@ -296,149 +363,359 @@ class _StatusTabs extends ConsumerWidget {
           .catchError((_) => <StatusItem>[]);
     }
 
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            indicatorColor: KColors.saffron,
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.tab,
-            dividerColor: k.border,
-            labelColor: k.text,
-            unselectedLabelColor: k.textMuted,
-            labelPadding: const EdgeInsets.only(right: 24),
-            labelStyle: const TextStyle(
-              fontFamily: KFonts.body,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+    Widget grid(List<StatusItem> list) {
+      if (items.isLoading && all.isEmpty) {
+        return const Center(
+          child: CircularProgressIndicator(color: KColors.saffron),
+        );
+      }
+      if (list.isEmpty) {
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+          children: [
+            EmptyState(
+              icon: Icons.hourglass_empty_rounded,
+              title: 'No statuses here yet',
+              message:
+                  'Open ${app.label}, view some statuses, then come back. '
+                  'Pull down to refresh.',
             ),
-            unselectedLabelStyle: const TextStyle(
-              fontFamily: KFonts.body,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            tabs: [
-              _IconTab(Icons.play_arrow_rounded, 'Videos ${videos.length}'),
-              _IconTab(Icons.image_outlined, 'Photos ${photos.length}'),
-            ],
-          ),
+          ],
+        );
+      }
+      return GridView.builder(
+        padding: EdgeInsets.fromLTRB(20, 16, 20, selecting ? 110 : 24),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 0.76,
         ),
-        Expanded(
-          child: TabBarView(
+        itemCount: list.length,
+        itemBuilder: (_, i) {
+          final item = list[i];
+          return _StatusTile(
+            item: item,
+            saved: saved.contains(item.hashFor(app)),
+            selecting: selecting,
+            selected: _selected.contains(item.uri),
+            onTap: selecting
+                ? () => _toggle(item)
+                : () => showStatusViewer(context, app, list, i),
+            onLongPress: () => _toggle(item),
+          );
+        },
+      );
+    }
+
+    return PopScope(
+      canPop: !selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(_selected.clear);
+      },
+      child: Stack(
+        children: [
+          Column(
             children: [
-              for (final list in [videos, photos])
-                RefreshIndicator(
-                  color: KColors.saffron,
-                  onRefresh: refresh,
-                  child: items.isLoading && all.isEmpty
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: KColors.saffron,
-                          ),
-                        )
-                      : list.isEmpty
-                      ? ListView(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                          children: [
-                            EmptyState(
-                              icon: Icons.hourglass_empty_rounded,
-                              title: 'No statuses here yet',
-                              message:
-                                  'Open ${app.label}, view some statuses, then come '
-                                  'back. Pull down to refresh.',
-                            ),
-                          ],
-                        )
-                      : GridView.builder(
-                          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                mainAxisSpacing: 10,
-                                crossAxisSpacing: 10,
-                                childAspectRatio: 0.76,
-                              ),
-                          itemCount: list.length,
-                          itemBuilder: (_, i) =>
-                              _StatusTile(items: list, index: i),
-                        ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: TabBar(
+                  isScrollable: true,
+                  tabAlignment: TabAlignment.start,
+                  indicatorColor: KColors.saffron,
+                  indicatorWeight: 3,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: k.border,
+                  labelColor: k.text,
+                  unselectedLabelColor: k.textMuted,
+                  labelPadding: const EdgeInsets.only(right: 24),
+                  labelStyle: const TextStyle(
+                    fontFamily: KFonts.body,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: KFonts.body,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  tabs: [
+                    _IconTab(
+                      Icons.play_arrow_rounded,
+                      'Videos ${videos.length}',
+                    ),
+                    _IconTab(Icons.image_outlined, 'Photos ${photos.length}'),
+                  ],
                 ),
+              ),
+              Expanded(
+                child: TabBarView(
+                  children: [
+                    for (final list in [videos, photos])
+                      RefreshIndicator(
+                        color: KColors.saffron,
+                        onRefresh: refresh,
+                        child: grid(list),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 12,
+            child: IgnorePointer(
+              ignoring: !selecting,
+              child: AnimatedSlide(
+                duration: context.ms(200),
+                curve: Curves.easeOutCubic,
+                offset: selecting ? Offset.zero : const Offset(0, 1.6),
+                child: AnimatedOpacity(
+                  duration: context.ms(150),
+                  opacity: selecting ? 1 : 0,
+                  child: _SelectionBar(
+                    count: _selected.length,
+                    allSelected: allSelected,
+                    saving: _saving,
+                    onSelectAll: () => setState(() {
+                      if (allSelected) {
+                        _selected.clear();
+                      } else {
+                        _selected.addAll(visible.map((s) => s.uri));
+                      }
+                    }),
+                    onSave: () => _save(visible),
+                    onClear: () => setState(_selected.clear),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectionBar extends StatelessWidget {
+  const _SelectionBar({
+    required this.count,
+    required this.allSelected,
+    required this.saving,
+    required this.onSelectAll,
+    required this.onSave,
+    required this.onClear,
+  });
+
+  final int count;
+  final bool allSelected;
+  final bool saving;
+  final VoidCallback onSelectAll;
+  final VoidCallback onSave;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: KColors.ink,
+      borderRadius: BorderRadius.circular(18),
+      elevation: 6,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(4, 8, 8, 8),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Clear selection',
+              icon: const Icon(Icons.close_rounded, color: KColors.white),
+              onPressed: onClear,
+            ),
+            Expanded(
+              child: Text(
+                '$count selected',
+                style: const TextStyle(
+                  color: KColors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onSelectAll,
+              style: TextButton.styleFrom(foregroundColor: KColors.white),
+              child: Text(allSelected ? 'Select none' : 'Select all'),
+            ),
+            const SizedBox(width: 4),
+            FilledButton.icon(
+              onPressed: saving || count == 0 ? null : onSave,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(0, 46),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                disabledBackgroundColor: KColors.saffron.withValues(alpha: 0.5),
+              ),
+              icon: saving
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: KColors.ink,
+                      ),
+                    )
+                  : const Icon(Icons.download_rounded),
+              label: const Text('Save'),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
 class _StatusTile extends ConsumerWidget {
-  const _StatusTile({required this.items, required this.index});
+  const _StatusTile({
+    required this.item,
+    required this.saved,
+    required this.selecting,
+    required this.selected,
+    required this.onTap,
+    required this.onLongPress,
+  });
 
-  final List<StatusItem> items;
-  final int index;
+  final StatusItem item;
+  final bool saved;
+  final bool selecting;
+  final bool selected;
+  final VoidCallback onTap;
+  final VoidCallback onLongPress;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final k = context.k;
-    final item = items[index];
     final thumb = ref.watch(statusThumbProvider((item.uri, item.type))).value;
     final video = item.type == StatusType.video;
 
     return Semantics(
       button: true,
-      label: '${video ? 'Video' : 'Photo'} status, ${timeAgo(item.modified)}',
+      selected: selected,
+      label: [
+        video ? 'Video status' : 'Photo status',
+        timeAgo(item.modified),
+        if (saved) 'saved',
+      ].join(', '),
       child: GestureDetector(
-        onTap: () => showStatusViewer(context, items, index),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ColoredBox(color: k.hero),
-              if (thumb != null)
-                Image.file(
-                  File(thumb.path),
-                  fit: BoxFit.cover,
-                  cacheWidth: 360,
-                  errorBuilder: (_, _, _) => const SizedBox(),
-                ),
-              if (video)
-                const Center(
-                  child: Icon(
-                    Icons.play_arrow_rounded,
-                    color: KColors.white,
-                    size: 32,
-                    shadows: [Shadow(blurRadius: 8, color: Color(0x80000000))],
+        onTap: onTap,
+        onLongPress: onLongPress,
+        child: AnimatedContainer(
+          duration: context.ms(150),
+          padding: EdgeInsets.all(selected ? 3 : 0),
+          decoration: BoxDecoration(
+            color: KColors.saffron,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(selected ? 13 : 16),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(color: k.hero),
+                if (thumb != null)
+                  Image.file(
+                    File(thumb.path),
+                    fit: BoxFit.cover,
+                    cacheWidth: 360,
+                    errorBuilder: (_, _, _) => const SizedBox(),
                   ),
-                ),
-              if (video && thumb?.duration != null)
-                Positioned(
-                  left: 6,
-                  bottom: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 2,
+                if (video)
+                  const Center(
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: KColors.white,
+                      size: 32,
+                      shadows: [
+                        Shadow(blurRadius: 8, color: Color(0x80000000)),
+                      ],
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xCC12262B),
-                      borderRadius: BorderRadius.circular(6),
+                  ),
+                if (saved)
+                  const Positioned(left: 6, top: 6, child: SavedBadge()),
+                if (selecting)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: AnimatedContainer(
+                      duration: context.ms(150),
+                      width: 26,
+                      height: 26,
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? KColors.saffron
+                            : const Color(0x33000000),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: selected ? KColors.saffron : KColors.white,
+                          width: 2,
+                        ),
+                      ),
+                      child: selected
+                          ? const Icon(
+                              Icons.check_rounded,
+                              size: 16,
+                              color: KColors.ink,
+                            )
+                          : null,
                     ),
-                    child: Text(
-                      formatDuration(thumb!.duration!),
-                      style: const TextStyle(
-                        color: KColors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                  ),
+                if (video && thumb?.duration != null)
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xCC12262B),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        formatDuration(thumb!.duration!),
+                        style: const TextStyle(
+                          color: KColors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Small teal "Saved" label for statuses already saved.
+class SavedBadge extends StatelessWidget {
+  const SavedBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: KColors.teal,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Text(
+        'Saved',
+        style: TextStyle(
+          color: KColors.white,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
         ),
       ),
     );

@@ -51,18 +51,33 @@ class Downloads extends Table {
   Set<Column> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Downloads])
+/// WhatsApp statuses the user has saved, so the grid can mark them.
+class SavedStatuses extends Table {
+  /// `app|file name|size`: stable while the status exists.
+  TextColumn get hash => text()();
+  TextColumn get app => text()();
+  TextColumn get type => text()();
+  TextColumn get savedUri => text().nullable()();
+  TextColumn get savedPath => text().nullable()();
+  DateTimeColumn get savedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {hash};
+}
+
+@DriftDatabase(tables: [Downloads, SavedStatuses])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'kheench'));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.addColumn(downloads, downloads.percent);
+      if (from < 3) await m.createTable(savedStatuses);
     },
   );
 
@@ -88,6 +103,15 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> remove(String id) =>
       (delete(downloads)..where((d) => d.id.equals(id))).go();
+
+  Stream<Set<String>> watchSavedStatusHashes() =>
+      select(savedStatuses)
+          .map((r) => r.hash)
+          .watch()
+          .map((list) => list.toSet());
+
+  Future<void> markStatusSaved(SavedStatusesCompanion row) =>
+      into(savedStatuses).insertOnConflictUpdate(row);
 }
 
 final databaseProvider = Provider<AppDatabase>((ref) {

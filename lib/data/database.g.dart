@@ -1089,15 +1089,431 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
   }
 }
 
+class $SavedStatusesTable extends SavedStatuses
+    with TableInfo<$SavedStatusesTable, SavedStatuse> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SavedStatusesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _hashMeta = const VerificationMeta('hash');
+  @override
+  late final GeneratedColumn<String> hash = GeneratedColumn<String>(
+    'hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _appMeta = const VerificationMeta('app');
+  @override
+  late final GeneratedColumn<String> app = GeneratedColumn<String>(
+    'app',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+    'type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _savedUriMeta = const VerificationMeta(
+    'savedUri',
+  );
+  @override
+  late final GeneratedColumn<String> savedUri = GeneratedColumn<String>(
+    'saved_uri',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _savedPathMeta = const VerificationMeta(
+    'savedPath',
+  );
+  @override
+  late final GeneratedColumn<String> savedPath = GeneratedColumn<String>(
+    'saved_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _savedAtMeta = const VerificationMeta(
+    'savedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> savedAt = GeneratedColumn<DateTime>(
+    'saved_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    hash,
+    app,
+    type,
+    savedUri,
+    savedPath,
+    savedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saved_statuses';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SavedStatuse> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('hash')) {
+      context.handle(
+        _hashMeta,
+        hash.isAcceptableOrUnknown(data['hash']!, _hashMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hashMeta);
+    }
+    if (data.containsKey('app')) {
+      context.handle(
+        _appMeta,
+        app.isAcceptableOrUnknown(data['app']!, _appMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_appMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+        _typeMeta,
+        type.isAcceptableOrUnknown(data['type']!, _typeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('saved_uri')) {
+      context.handle(
+        _savedUriMeta,
+        savedUri.isAcceptableOrUnknown(data['saved_uri']!, _savedUriMeta),
+      );
+    }
+    if (data.containsKey('saved_path')) {
+      context.handle(
+        _savedPathMeta,
+        savedPath.isAcceptableOrUnknown(data['saved_path']!, _savedPathMeta),
+      );
+    }
+    if (data.containsKey('saved_at')) {
+      context.handle(
+        _savedAtMeta,
+        savedAt.isAcceptableOrUnknown(data['saved_at']!, _savedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_savedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {hash};
+  @override
+  SavedStatuse map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SavedStatuse(
+      hash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hash'],
+      )!,
+      app: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}app'],
+      )!,
+      type: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}type'],
+      )!,
+      savedUri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}saved_uri'],
+      ),
+      savedPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}saved_path'],
+      ),
+      savedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}saved_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SavedStatusesTable createAlias(String alias) {
+    return $SavedStatusesTable(attachedDatabase, alias);
+  }
+}
+
+class SavedStatuse extends DataClass implements Insertable<SavedStatuse> {
+  /// `app|file name|size`: stable while the status exists.
+  final String hash;
+  final String app;
+  final String type;
+  final String? savedUri;
+  final String? savedPath;
+  final DateTime savedAt;
+  const SavedStatuse({
+    required this.hash,
+    required this.app,
+    required this.type,
+    this.savedUri,
+    this.savedPath,
+    required this.savedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['hash'] = Variable<String>(hash);
+    map['app'] = Variable<String>(app);
+    map['type'] = Variable<String>(type);
+    if (!nullToAbsent || savedUri != null) {
+      map['saved_uri'] = Variable<String>(savedUri);
+    }
+    if (!nullToAbsent || savedPath != null) {
+      map['saved_path'] = Variable<String>(savedPath);
+    }
+    map['saved_at'] = Variable<DateTime>(savedAt);
+    return map;
+  }
+
+  SavedStatusesCompanion toCompanion(bool nullToAbsent) {
+    return SavedStatusesCompanion(
+      hash: Value(hash),
+      app: Value(app),
+      type: Value(type),
+      savedUri: savedUri == null && nullToAbsent
+          ? const Value.absent()
+          : Value(savedUri),
+      savedPath: savedPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(savedPath),
+      savedAt: Value(savedAt),
+    );
+  }
+
+  factory SavedStatuse.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SavedStatuse(
+      hash: serializer.fromJson<String>(json['hash']),
+      app: serializer.fromJson<String>(json['app']),
+      type: serializer.fromJson<String>(json['type']),
+      savedUri: serializer.fromJson<String?>(json['savedUri']),
+      savedPath: serializer.fromJson<String?>(json['savedPath']),
+      savedAt: serializer.fromJson<DateTime>(json['savedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'hash': serializer.toJson<String>(hash),
+      'app': serializer.toJson<String>(app),
+      'type': serializer.toJson<String>(type),
+      'savedUri': serializer.toJson<String?>(savedUri),
+      'savedPath': serializer.toJson<String?>(savedPath),
+      'savedAt': serializer.toJson<DateTime>(savedAt),
+    };
+  }
+
+  SavedStatuse copyWith({
+    String? hash,
+    String? app,
+    String? type,
+    Value<String?> savedUri = const Value.absent(),
+    Value<String?> savedPath = const Value.absent(),
+    DateTime? savedAt,
+  }) => SavedStatuse(
+    hash: hash ?? this.hash,
+    app: app ?? this.app,
+    type: type ?? this.type,
+    savedUri: savedUri.present ? savedUri.value : this.savedUri,
+    savedPath: savedPath.present ? savedPath.value : this.savedPath,
+    savedAt: savedAt ?? this.savedAt,
+  );
+  SavedStatuse copyWithCompanion(SavedStatusesCompanion data) {
+    return SavedStatuse(
+      hash: data.hash.present ? data.hash.value : this.hash,
+      app: data.app.present ? data.app.value : this.app,
+      type: data.type.present ? data.type.value : this.type,
+      savedUri: data.savedUri.present ? data.savedUri.value : this.savedUri,
+      savedPath: data.savedPath.present ? data.savedPath.value : this.savedPath,
+      savedAt: data.savedAt.present ? data.savedAt.value : this.savedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedStatuse(')
+          ..write('hash: $hash, ')
+          ..write('app: $app, ')
+          ..write('type: $type, ')
+          ..write('savedUri: $savedUri, ')
+          ..write('savedPath: $savedPath, ')
+          ..write('savedAt: $savedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(hash, app, type, savedUri, savedPath, savedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SavedStatuse &&
+          other.hash == this.hash &&
+          other.app == this.app &&
+          other.type == this.type &&
+          other.savedUri == this.savedUri &&
+          other.savedPath == this.savedPath &&
+          other.savedAt == this.savedAt);
+}
+
+class SavedStatusesCompanion extends UpdateCompanion<SavedStatuse> {
+  final Value<String> hash;
+  final Value<String> app;
+  final Value<String> type;
+  final Value<String?> savedUri;
+  final Value<String?> savedPath;
+  final Value<DateTime> savedAt;
+  final Value<int> rowid;
+  const SavedStatusesCompanion({
+    this.hash = const Value.absent(),
+    this.app = const Value.absent(),
+    this.type = const Value.absent(),
+    this.savedUri = const Value.absent(),
+    this.savedPath = const Value.absent(),
+    this.savedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SavedStatusesCompanion.insert({
+    required String hash,
+    required String app,
+    required String type,
+    this.savedUri = const Value.absent(),
+    this.savedPath = const Value.absent(),
+    required DateTime savedAt,
+    this.rowid = const Value.absent(),
+  }) : hash = Value(hash),
+       app = Value(app),
+       type = Value(type),
+       savedAt = Value(savedAt);
+  static Insertable<SavedStatuse> custom({
+    Expression<String>? hash,
+    Expression<String>? app,
+    Expression<String>? type,
+    Expression<String>? savedUri,
+    Expression<String>? savedPath,
+    Expression<DateTime>? savedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (hash != null) 'hash': hash,
+      if (app != null) 'app': app,
+      if (type != null) 'type': type,
+      if (savedUri != null) 'saved_uri': savedUri,
+      if (savedPath != null) 'saved_path': savedPath,
+      if (savedAt != null) 'saved_at': savedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SavedStatusesCompanion copyWith({
+    Value<String>? hash,
+    Value<String>? app,
+    Value<String>? type,
+    Value<String?>? savedUri,
+    Value<String?>? savedPath,
+    Value<DateTime>? savedAt,
+    Value<int>? rowid,
+  }) {
+    return SavedStatusesCompanion(
+      hash: hash ?? this.hash,
+      app: app ?? this.app,
+      type: type ?? this.type,
+      savedUri: savedUri ?? this.savedUri,
+      savedPath: savedPath ?? this.savedPath,
+      savedAt: savedAt ?? this.savedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (hash.present) {
+      map['hash'] = Variable<String>(hash.value);
+    }
+    if (app.present) {
+      map['app'] = Variable<String>(app.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (savedUri.present) {
+      map['saved_uri'] = Variable<String>(savedUri.value);
+    }
+    if (savedPath.present) {
+      map['saved_path'] = Variable<String>(savedPath.value);
+    }
+    if (savedAt.present) {
+      map['saved_at'] = Variable<DateTime>(savedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SavedStatusesCompanion(')
+          ..write('hash: $hash, ')
+          ..write('app: $app, ')
+          ..write('type: $type, ')
+          ..write('savedUri: $savedUri, ')
+          ..write('savedPath: $savedPath, ')
+          ..write('savedAt: $savedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $DownloadsTable downloads = $DownloadsTable(this);
+  late final $SavedStatusesTable savedStatuses = $SavedStatusesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [downloads];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    downloads,
+    savedStatuses,
+  ];
 }
 
 typedef $$DownloadsTableCreateCompanionBuilder = DownloadsCompanion Function({
@@ -1590,10 +2006,240 @@ typedef $$DownloadsTableProcessedTableManager =
       Download,
       PrefetchHooks Function()
     >;
+typedef $$SavedStatusesTableCreateCompanionBuilder =
+    SavedStatusesCompanion Function({
+      required String hash,
+      required String app,
+      required String type,
+      Value<String?> savedUri,
+      Value<String?> savedPath,
+      required DateTime savedAt,
+      Value<int> rowid,
+    });
+typedef $$SavedStatusesTableUpdateCompanionBuilder =
+    SavedStatusesCompanion Function({
+      Value<String> hash,
+      Value<String> app,
+      Value<String> type,
+      Value<String?> savedUri,
+      Value<String?> savedPath,
+      Value<DateTime> savedAt,
+      Value<int> rowid,
+    });
+
+class $$SavedStatusesTableFilterComposer
+    extends Composer<_$AppDatabase, $SavedStatusesTable> {
+  $$SavedStatusesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get hash => $composableBuilder(
+    column: $table.hash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get app => $composableBuilder(
+    column: $table.app,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get savedUri => $composableBuilder(
+    column: $table.savedUri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get savedPath => $composableBuilder(
+    column: $table.savedPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SavedStatusesTableOrderingComposer
+    extends Composer<_$AppDatabase, $SavedStatusesTable> {
+  $$SavedStatusesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get hash => $composableBuilder(
+    column: $table.hash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get app => $composableBuilder(
+    column: $table.app,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get type => $composableBuilder(
+    column: $table.type,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get savedUri => $composableBuilder(
+    column: $table.savedUri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get savedPath => $composableBuilder(
+    column: $table.savedPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get savedAt => $composableBuilder(
+    column: $table.savedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SavedStatusesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SavedStatusesTable> {
+  $$SavedStatusesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get hash =>
+      $composableBuilder(column: $table.hash, builder: (column) => column);
+
+  GeneratedColumn<String> get app =>
+      $composableBuilder(column: $table.app, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get savedUri =>
+      $composableBuilder(column: $table.savedUri, builder: (column) => column);
+
+  GeneratedColumn<String> get savedPath =>
+      $composableBuilder(column: $table.savedPath, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get savedAt =>
+      $composableBuilder(column: $table.savedAt, builder: (column) => column);
+}
+
+class $$SavedStatusesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SavedStatusesTable,
+          SavedStatuse,
+          $$SavedStatusesTableFilterComposer,
+          $$SavedStatusesTableOrderingComposer,
+          $$SavedStatusesTableAnnotationComposer,
+          $$SavedStatusesTableCreateCompanionBuilder,
+          $$SavedStatusesTableUpdateCompanionBuilder,
+          (
+            SavedStatuse,
+            BaseReferences<_$AppDatabase, $SavedStatusesTable, SavedStatuse>,
+          ),
+          SavedStatuse,
+          PrefetchHooks Function()
+        > {
+  $$SavedStatusesTableTableManager(_$AppDatabase db, $SavedStatusesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SavedStatusesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SavedStatusesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SavedStatusesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> hash = const Value.absent(),
+                Value<String> app = const Value.absent(),
+                Value<String> type = const Value.absent(),
+                Value<String?> savedUri = const Value.absent(),
+                Value<String?> savedPath = const Value.absent(),
+                Value<DateTime> savedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SavedStatusesCompanion(
+                hash: hash,
+                app: app,
+                type: type,
+                savedUri: savedUri,
+                savedPath: savedPath,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String hash,
+                required String app,
+                required String type,
+                Value<String?> savedUri = const Value.absent(),
+                Value<String?> savedPath = const Value.absent(),
+                required DateTime savedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SavedStatusesCompanion.insert(
+                hash: hash,
+                app: app,
+                type: type,
+                savedUri: savedUri,
+                savedPath: savedPath,
+                savedAt: savedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SavedStatusesTable, SavedStatuse>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SavedStatusesTable,
+                    SavedStatuse
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SavedStatusesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SavedStatusesTable,
+      SavedStatuse,
+      $$SavedStatusesTableFilterComposer,
+      $$SavedStatusesTableOrderingComposer,
+      $$SavedStatusesTableAnnotationComposer,
+      $$SavedStatusesTableCreateCompanionBuilder,
+      $$SavedStatusesTableUpdateCompanionBuilder,
+      (
+        SavedStatuse,
+        BaseReferences<_$AppDatabase, $SavedStatusesTable, SavedStatuse>,
+      ),
+      SavedStatuse,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$DownloadsTableTableManager get downloads =>
       $$DownloadsTableTableManager(_db, _db.downloads);
+  $$SavedStatusesTableTableManager get savedStatuses =>
+      $$SavedStatusesTableTableManager(_db, _db.savedStatuses);
 }

@@ -9,37 +9,59 @@ import android.os.Environment
 import android.provider.MediaStore
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
 
-/** Copies finished files from app cache into shared storage (Movies/Music/Kheench). */
+/** Copies files into shared storage (Movies, Music or Pictures /Kheench). */
 object MediaPublisher {
     data class Published(val uri: String, val path: String, val name: String, val size: Long)
 
-    fun publish(context: Context, file: File, kind: String): Published {
-        val audio = kind == "audio"
-        val folder = if (audio) Environment.DIRECTORY_MUSIC else Environment.DIRECTORY_MOVIES
-        val mime = mimeFor(file.extension.lowercase(), audio)
+    fun publish(context: Context, file: File, kind: String): Published =
+        publish(context, { file.inputStream() }, file.name, kind, subfolder = null, sizeHint = file.length())
+
+    /**
+     * Copies a stream into shared storage: videos → Movies/Kheench, audio →
+     * Music/Kheench, photos → Pictures/Kheench, plus an optional [subfolder].
+     */
+    fun publish(
+        context: Context,
+        open: () -> InputStream,
+        name: String,
+        kind: String,
+        subfolder: String?,
+        sizeHint: Long,
+    ): Published {
+        val folder = when (kind) {
+            "audio" -> Environment.DIRECTORY_MUSIC
+            "photo" -> Environment.DIRECTORY_PICTURES
+            else -> Environment.DIRECTORY_MOVIES
+        }
+        val album = if (subfolder == null) ALBUM else "$ALBUM/$subfolder"
+        val mime = mimeFor(name.substringAfterLast('.', "").lowercase(), kind)
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            publishScoped(context, file, "$folder/$ALBUM", mime, audio)
+            publishScoped(context, open, name, "$folder/$album", mime, kind, sizeHint)
         } else {
-            publishLegacy(context, file, folder, mime)
+            publishLegacy(context, open, name, folder, album, mime)
         }
     }
 
     private fun publishScoped(
         context: Context,
-        file: File,
+        open: () -> InputStream,
+        name: String,
         relativePath: String,
         mime: String,
-        audio: Boolean,
+        kind: String,
+        sizeHint: Long,
     ): Published {
         val resolver = context.contentResolver
-        val collection = if (audio) {
-            MediaStore.Audio.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        } else {
-            MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        val volume = MediaStore.VOLUME_EXTERNAL_PRIMARY
+        val collection = when (kind) {
+            "audio" -> MediaStore.Audio.Media.getContentUri(volume)
+            "photo" -> MediaStore.Images.Media.getContentUri(volume)
+            else -> MediaStore.Video.Media.getContentUri(volume)
         }
         val values = ContentValues().apply {
-            put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+            put(MediaStore.MediaColumns.DISPLAY_NAME, name)
             put(MediaStore.MediaColumns.MIME_TYPE, mime)
             put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath)
             put(MediaStore.MediaColumns.IS_PENDING, 1)
@@ -48,7 +70,7 @@ object MediaPublisher {
             ?: throw IOException("Could not create a file in $relativePath")
         try {
             resolver.openOutputStream(uri)?.use { out ->
-                file.inputStream().use { it.copyTo(out) }
+                open().use { it.copyTo(out) }
             } ?: throw IOException("Could not write to $relativePath")
             resolver.update(uri, ContentValues().apply {
                 put(MediaStore.MediaColumns.IS_PENDING, 0)
@@ -58,33 +80,51 @@ object MediaPublisher {
             throw e
         }
         // MediaStore may rename on clashes ("name (1).mp4"); read the final name back.
-        val name = resolver.query(
+        val finalName = resolver.query(
             uri, arrayOf(MediaStore.MediaColumns.DISPLAY_NAME), null, null, null,
-        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: file.name
-        return Published(uri.toString(), "$relativePath/$name", name, file.length())
+        )?.use { c -> if (c.moveToFirst()) c.getString(0) else null } ?: name
+        return Published(uri.toString(), "$relativePath/$finalName", finalName, sizeHint)
     }
 
     @Suppress("DEPRECATION")
-    private fun publishLegacy(context: Context, file: File, folder: String, mime: String): Published {
-        val dir = File(Environment.getExternalStoragePublicDirectory(folder), ALBUM)
+    private fun publishLegacy(
+        context: Context,
+        open: () -> InputStream,
+        name: String,
+        folder: String,
+        album: String,
+        mime: String,
+    ): Published {
+        val dir = File(Environment.getExternalStoragePublicDirectory(folder), album)
         if (!dir.exists() && !dir.mkdirs()) throw IOException("Could not create $dir")
-        var target = File(dir, file.name)
+        val base = name.substringBeforeLast('.')
+        val ext = name.substringAfterLast('.', "")
+        var target = File(dir, name)
         var n = 1
         while (target.exists()) {
-            target = File(dir, "${file.nameWithoutExtension} ($n).${file.extension}")
+            target = File(dir, "$base ($n).$ext")
             n++
         }
-        file.copyTo(target)
+        open().use { input -> target.outputStream().use { input.copyTo(it) } }
         MediaScannerConnection.scanFile(context, arrayOf(target.absolutePath), arrayOf(mime), null)
         return Published(
             Uri.fromFile(target).toString(),
-            "$folder/$ALBUM/${target.name}",
+            "$folder/$album/${target.name}",
             target.name,
             target.length(),
         )
     }
 
-    fun mimeFor(ext: String, audio: Boolean): String = if (audio) {
+    fun mimeFor(ext: String, audio: Boolean): String = mimeFor(ext, if (audio) "audio" else "video")
+
+    fun mimeFor(ext: String, kind: String): String = if (kind == "photo") {
+        when (ext) {
+            "png" -> "image/png"
+            "webp" -> "image/webp"
+            "gif" -> "image/gif"
+            else -> "image/jpeg"
+        }
+    } else if (kind == "audio") {
         when (ext) {
             "mp3" -> "audio/mpeg"
             "m4a", "mp4", "aac" -> "audio/mp4"
