@@ -20,8 +20,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
 | Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
-| WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails | Done |
-| Save statuses: preview, multi-select, save to `Movies/Kheench/Status` and `Pictures/Kheench/Status` | Planned |
+| WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback) | Done |
+| Save statuses: multi-select, save to `Movies/Kheench/Status` and `Pictures/Kheench/Status` | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |
 | Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |

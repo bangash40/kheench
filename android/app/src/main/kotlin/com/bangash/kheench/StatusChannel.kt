@@ -53,6 +53,7 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
             "thumbnail" -> background(result) {
                 thumbnail(call.argument<String>("uri")!!, call.argument<String>("type")!!)
             }
+            "localCopy" -> background(result) { localCopy(call.argument<String>("uri")!!) }
             else -> result.notImplemented()
         }
     }
@@ -214,33 +215,65 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
 
     // --- thumbnails -------------------------------------------------------
 
-    /** Path to a small cached JPEG for [raw]; made once per file. */
-    private fun thumbnail(raw: String, type: String): String? {
+    /**
+     * `{ path, durationMs }`: a small cached JPEG for [raw] (made once per file)
+     * and, for videos, the length.
+     */
+    private fun thumbnail(raw: String, type: String): Map<String, Any?>? {
         val dir = File(activity.cacheDir, "status_thumbs").apply { mkdirs() }
-        val out = File(dir, "${raw.hashCode().toUInt().toString(16)}.jpg")
-        if (out.exists() && out.length() > 0) return out.absolutePath
+        val key = raw.hashCode().toUInt().toString(16)
+        val out = File(dir, "$key.jpg")
+        val durFile = File(dir, "$key.dur")
+        val cached = out.exists() && out.length() > 0 && (type != "video" || durFile.exists())
+        if (cached) {
+            return mapOf("path" to out.absolutePath, "durationMs" to durFile.takeIf { it.exists() }?.readText()?.toLongOrNull())
+        }
         val uri = Uri.parse(raw)
+        var duration: Long? = null
         val bitmap = try {
-            if (type == "video") videoFrame(uri) else scaledPhoto(uri)
+            if (type == "video") {
+                val (frame, ms) = videoFrame(uri)
+                duration = ms
+                frame
+            } else {
+                scaledPhoto(uri)
+            }
         } catch (e: Exception) {
             Log.w(TAG, "thumbnail failed for $raw", e)
             null
         } ?: return null
         out.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 80, it) }
         bitmap.recycle()
-        return out.absolutePath
+        duration?.let { durFile.writeText(it.toString()) }
+        return mapOf("path" to out.absolutePath, "durationMs" to duration)
     }
 
-    private fun videoFrame(uri: Uri): Bitmap? {
+    private fun videoFrame(uri: Uri): Pair<Bitmap?, Long?> {
         val r = MediaMetadataRetriever()
         return try {
             r.setDataSource(activity, uri)
+            val ms = r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
             val frame = r.getFrameAtTime(1_000_000, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
                 ?: r.frameAtTime
-            frame?.let { scaleDown(it) }
+            frame?.let { scaleDown(it) } to ms
         } finally {
             r.release()
         }
+    }
+
+    /** A readable local path for [raw]; picker (content://) files are copied to cache once. */
+    private fun localCopy(raw: String): String? {
+        val uri = Uri.parse(raw)
+        if (uri.scheme == "file") return uri.path
+        val dir = File(activity.cacheDir, "status_view").apply { mkdirs() }
+        val name = DocumentsContract.getDocumentId(uri).substringAfterLast('/')
+        val out = File(dir, "${raw.hashCode().toUInt().toString(16)}_$name")
+        if (!out.exists() || out.length() == 0L) {
+            activity.contentResolver.openInputStream(uri)?.use { input ->
+                out.outputStream().use { input.copyTo(it) }
+            } ?: return null
+        }
+        return out.absolutePath
     }
 
     private fun scaledPhoto(uri: Uri): Bitmap? {

@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../engine/status_source.dart';
+import '../../engine/media_info.dart';
 import '../../widgets/common.dart';
+import 'status_viewer.dart';
 
 class StatusScreen extends ConsumerStatefulWidget {
   const StatusScreen({super.key});
@@ -126,9 +128,7 @@ class _Message extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-      children: [
-        EmptyState(icon: icon, title: title, message: message),
-      ],
+      children: [EmptyState(icon: icon, title: title, message: message)],
     );
   }
 }
@@ -362,7 +362,8 @@ class _StatusTabs extends ConsumerWidget {
                                 childAspectRatio: 0.76,
                               ),
                           itemCount: list.length,
-                          itemBuilder: (_, i) => _StatusTile(item: list[i]),
+                          itemBuilder: (_, i) =>
+                              _StatusTile(items: list, index: i),
                         ),
                 ),
             ],
@@ -374,37 +375,71 @@ class _StatusTabs extends ConsumerWidget {
 }
 
 class _StatusTile extends ConsumerWidget {
-  const _StatusTile({required this.item});
+  const _StatusTile({required this.items, required this.index});
 
-  final StatusItem item;
+  final List<StatusItem> items;
+  final int index;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final k = context.k;
+    final item = items[index];
     final thumb = ref.watch(statusThumbProvider((item.uri, item.type))).value;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(14),
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          ColoredBox(color: k.hero),
-          if (thumb != null)
-            Image.file(
-              File(thumb),
-              fit: BoxFit.cover,
-              cacheWidth: 360,
-              errorBuilder: (_, _, _) => const SizedBox(),
-            ),
-          if (item.type == StatusType.video)
-            const Center(
-              child: Icon(
-                Icons.play_arrow_rounded,
-                color: KColors.white,
-                size: 32,
-                shadows: [Shadow(blurRadius: 8, color: Color(0x80000000))],
-              ),
-            ),
-        ],
+    final video = item.type == StatusType.video;
+
+    return Semantics(
+      button: true,
+      label: '${video ? 'Video' : 'Photo'} status, ${timeAgo(item.modified)}',
+      child: GestureDetector(
+        onTap: () => showStatusViewer(context, items, index),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              ColoredBox(color: k.hero),
+              if (thumb != null)
+                Image.file(
+                  File(thumb.path),
+                  fit: BoxFit.cover,
+                  cacheWidth: 360,
+                  errorBuilder: (_, _, _) => const SizedBox(),
+                ),
+              if (video)
+                const Center(
+                  child: Icon(
+                    Icons.play_arrow_rounded,
+                    color: KColors.white,
+                    size: 32,
+                    shadows: [Shadow(blurRadius: 8, color: Color(0x80000000))],
+                  ),
+                ),
+              if (video && thumb?.duration != null)
+                Positioned(
+                  left: 6,
+                  bottom: 6,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xCC12262B),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      formatDuration(thumb!.duration!),
+                      style: const TextStyle(
+                        color: KColors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

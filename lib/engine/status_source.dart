@@ -37,6 +37,13 @@ class StatusItem {
   );
 }
 
+class StatusThumb {
+  const StatusThumb(this.path, this.duration);
+
+  final String path;
+  final Duration? duration;
+}
+
 class StatusAccess {
   const StatusAccess({
     required this.granted,
@@ -95,9 +102,23 @@ class StatusSource {
     ];
   }
 
-  /// Local path of a small JPEG preview, or null if it couldn't be made.
-  Future<String?> thumbnail(String uri, StatusType type) => _channel
-      .invokeMethod<String>('thumbnail', {'uri': uri, 'type': type.name});
+  /// Small JPEG preview (and video length), or null if it couldn't be made.
+  Future<StatusThumb?> thumbnail(String uri, StatusType type) async {
+    final m = await _channel.invokeMapMethod<String, Object?>('thumbnail', {
+      'uri': uri,
+      'type': type.name,
+    });
+    if (m == null || m['path'] == null) return null;
+    final ms = (m['durationMs'] as num?)?.toInt();
+    return StatusThumb(
+      m['path'] as String,
+      ms == null ? null : Duration(milliseconds: ms),
+    );
+  }
+
+  /// A local file path for showing [uri] full screen.
+  Future<String?> localCopy(String uri) =>
+      _channel.invokeMethod<String>('localCopy', {'uri': uri});
 }
 
 final statusSourceProvider = Provider<StatusSource>((_) => StatusSource());
@@ -127,6 +148,6 @@ final statusItemsProvider = FutureProvider.family<List<StatusItem>, StatusApp>((
 });
 
 final statusThumbProvider =
-    FutureProvider.family<String?, (String, StatusType)>(
+    FutureProvider.family<StatusThumb?, (String, StatusType)>(
       (ref, key) => ref.watch(statusSourceProvider).thumbnail(key.$1, key.$2),
     );
