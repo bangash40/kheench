@@ -11,6 +11,7 @@ import io.flutter.embedding.engine.FlutterEngine
 class MainActivity : FlutterActivity() {
     private var files: FileChannel? = null
     private var status: StatusChannel? = null
+    private var accounts: AccountsChannel? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -20,12 +21,14 @@ class MainActivity : FlutterActivity() {
         ProgressBus.register(messenger)
         files = FileChannel(this).also { it.register(messenger) }
         status = StatusChannel(this).also { it.register(messenger) }
+        accounts = AccountsChannel(this).also { it.register(messenger) }
     }
 
     @Deprecated("Needed for startIntentSenderForResult on older APIs")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (files?.onActivityResult(requestCode, resultCode) == true) return
         if (status?.onActivityResult(requestCode, resultCode, data) == true) return
+        if (accounts?.onActivityResult(requestCode, resultCode) == true) return
         super.onActivityResult(requestCode, resultCode, data)
     }
 

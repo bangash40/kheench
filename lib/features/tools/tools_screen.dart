@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme.dart';
+import '../../data/database.dart';
+import '../../engine/accounts.dart';
 import '../../widgets/common.dart';
 
 class _Tool {
@@ -48,12 +51,14 @@ const _tools = [
   ),
 ];
 
-class ToolsScreen extends StatelessWidget {
+class ToolsScreen extends ConsumerWidget {
   const ToolsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final k = context.k;
+    final accounts =
+        ref.watch(accountStatusProvider).value ?? const <Platform, DateTime?>{};
     return SafeArea(
       bottom: false,
       child: ListView(
@@ -78,14 +83,9 @@ class ToolsScreen extends StatelessWidget {
             child: Card(
               child: Column(
                 children: [
-                  for (final (i, p) in const [
-                    'Instagram',
-                    'Facebook',
-                    'X',
-                    'TikTok',
-                  ].indexed) ...[
+                  for (final (i, p) in Platform.values.indexed) ...[
                     if (i > 0) const Divider(indent: 16, endIndent: 16),
-                    _AccountRow(platform: p),
+                    _AccountRow(platform: p, loggedInAt: accounts[p]),
                   ],
                 ],
               ),
@@ -161,14 +161,102 @@ class _ToolCard extends StatelessWidget {
   }
 }
 
-class _AccountRow extends StatelessWidget {
-  const _AccountRow({required this.platform});
+class _AccountRow extends ConsumerStatefulWidget {
+  const _AccountRow({required this.platform, required this.loggedInAt});
 
-  final String platform;
+  final Platform platform;
+  final DateTime? loggedInAt;
+
+  @override
+  ConsumerState<_AccountRow> createState() => _AccountRowState();
+}
+
+class _AccountRowState extends ConsumerState<_AccountRow> {
+  bool _busy = false;
+
+  static const _warningKey = 'accountsWarningSeen';
+
+  /// Shown once before the first login (rate-limit warning).
+  Future<bool> _warnOnce() async {
+    final db = ref.read(databaseProvider);
+    if ((await db.readSettings())[_warningKey] == 'true') return true;
+    if (!mounted) return false;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Before you log in'),
+        content: const Text(
+          'You log in on the site\'s own page; Kheench never sees your password.\n\n'
+          'Kheench can then save anything your account can already see. '
+          'Downloading a lot in a short time can get an account temporarily '
+          'limited by the site, so go easy.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await db.writeSetting(_warningKey, 'true');
+    return ok == true;
+  }
+
+  Future<void> _login() async {
+    if (!await _warnOnce()) return;
+    setState(() => _busy = true);
+    final ok = await ref.read(accountsProvider).login(widget.platform);
+    ref.invalidate(accountStatusProvider);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            ok
+                ? 'Logged in to ${widget.platform.label}'
+                : 'Not logged in to ${widget.platform.label}',
+          ),
+        ),
+      );
+  }
+
+  Future<void> _logout() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Log out of ${widget.platform.label}?'),
+        content: const Text(
+          'Kheench deletes the saved session from this phone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: KColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await ref.read(accountsProvider).logout(widget.platform);
+    ref.invalidate(accountStatusProvider);
+  }
 
   @override
   Widget build(BuildContext context) {
     final k = context.k;
+    final loggedIn = widget.loggedInAt != null;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -177,14 +265,17 @@ class _AccountRow extends StatelessWidget {
           const SizedBox(width: 14),
           Expanded(
             child: Text(
-              platform,
+              widget.platform.label,
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          OutlinedButton(
-            onPressed: () => showComingSoon(context, 'Account login'),
-            child: const Text('Log in'),
-          ),
+          if (loggedIn)
+            TextButton(onPressed: _logout, child: const Text('Logged in'))
+          else
+            OutlinedButton(
+              onPressed: _busy ? null : _login,
+              child: Text(_busy ? 'Waiting…' : 'Log in'),
+            ),
         ],
       ),
     );

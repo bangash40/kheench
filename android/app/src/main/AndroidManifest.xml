@@ -40,6 +40,12 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Platform login pages (Instagram, Facebook, X, TikTok). -->
+        <activity
+            android:name=".LoginActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <!-- Lets other apps open/share files saved on Android 9 and older. -->
         <provider
             android:name="androidx.core.content.FileProvider"

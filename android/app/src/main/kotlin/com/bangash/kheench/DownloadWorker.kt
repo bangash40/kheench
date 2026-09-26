@@ -57,7 +57,7 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
                 .addOption("--no-mtime")
                 .addCommands(inputData.getStringArray(KEY_ARGS)?.toList().orEmpty())
 
-            EngineCore.withDefaults(applicationContext, request)
+            EngineCore.withDefaults(applicationContext, request, inputData.getString(KEY_URL)!!)
             runWithRetries(request)
 
             stage = "saving"

@@ -68,7 +68,7 @@ class EngineError {
 
   String get message => switch (kind) {
     EngineErrorKind.unsupported => 'Kheench can\'t read videos from this link. Check it opens a video or post.',
-    EngineErrorKind.loginRequired => 'This content is only visible when logged in. Account login is coming soon.',
+    EngineErrorKind.loginRequired => 'Only visible when logged in. Log in under Tools → Accounts, then try again.',
     EngineErrorKind.noInternet => 'Check your connection and try again.',
     EngineErrorKind.unavailable =>
       'The post may be private, deleted, or the link has expired.',

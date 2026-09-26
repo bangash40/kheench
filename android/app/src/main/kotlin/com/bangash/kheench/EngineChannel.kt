@@ -91,7 +91,7 @@ class EngineChannel(
             .addOption("--dump-single-json")
             .addOption("--no-playlist")
             .addOption("--no-warnings")
-        return YoutubeDL.getInstance().execute(EngineCore.withDefaults(context, request)).out
+        return YoutubeDL.getInstance().execute(EngineCore.withDefaults(context, request, url)).out
     }
 
     private fun update(): String {

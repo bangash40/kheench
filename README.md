@@ -19,14 +19,16 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
 | Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
 | Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
-| Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback) | Done |
 | Save statuses: long-press to multi-select, Select all, Save from the grid or the preview; saved ones are marked | Done |
 | Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, engine update | Done |
 | Default quality downloads straight away (picker still one tap away), status auto-save, weekly engine update on Wi-Fi when idle | Done |
-| Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
+| Log in to Instagram, Facebook, X and TikTok on their own login pages; downloads then use your account (log out any time) | Done |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
 | Status splitter: cut long videos into status-length parts and share them in order | Planned |
+| TikTok links (TikTok blocks the engine's direct requests on Android) | Planned |
+| Faster link reading and download start (keep the engine loaded, reuse the lookup) | Planned |
+| Share links into Kheench from other apps, clipboard link detection | Planned |
 
 ## Tech stack
 
@@ -98,7 +100,7 @@ android/        Android app, launcher icon, launch screen, Kotlin engine bridge 
 
 - No analytics and no tracking.
 - Network requests go only to the sites you download from, plus GitHub when you tap "Update" on the download engine (new yt-dlp releases are published there).
-- Account logins (when added) use the platform's own login page; Kheench never sees or stores your password, and saved sessions stay in the app's private storage.
+- Account logins use the platform's own login page; Kheench never sees or stores your password. Only the session cookies are kept, in the app's private storage, and Log out deletes them.
 
 ## Responsible use
 
