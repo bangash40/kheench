@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
@@ -39,11 +41,31 @@ android {
         }
     }
 
+    // Release key lives in android/key.properties + app/kheench-release.jks
+    // (both git-ignored). Without them, release builds fall back to the debug key.
+    val keyProps = Properties().apply {
+        val file = rootProject.file("key.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+
+    signingConfigs {
+        if (keyProps.getProperty("storeFile") != null) {
+            create("release") {
+                storeFile = file(keyProps.getProperty("storeFile"))
+                storePassword = keyProps.getProperty("storePassword")
+                keyAlias = keyProps.getProperty("keyAlias")
+                keyPassword = keyProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.findByName("release")
+                ?: signingConfigs.getByName("debug")
+            // The engine library breaks when its classes are shrunk away.
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }

@@ -54,11 +54,13 @@ flutter pub get
 flutter run            # with an Android phone connected over USB
 ```
 
-Build a release APK:
+Build release APKs (one per CPU type; `app-arm64-v8a-release.apk` fits almost every phone, `app-armeabi-v7a-release.apk` is for older 32-bit ones):
 
 ```bash
-flutter build apk --release --split-per-abi
+flutter build apk --release --split-per-abi --target-platform android-arm,android-arm64
 ```
+
+Release builds are signed with the key in `android/key.properties` and `android/app/kheench-release.jks`. Both are git-ignored and must be kept safe: without them, later versions can't install as updates over the ones already on phones. If they're missing, the build falls back to the debug key.
 
 Regenerate database code after changing tables:
 
