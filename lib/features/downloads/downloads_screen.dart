@@ -9,6 +9,7 @@ import '../../engine/engine_error.dart';
 import '../../engine/media_info.dart';
 import '../../widgets/common.dart';
 import '../../widgets/media_thumb.dart';
+import 'download_actions.dart';
 import 'downloads_controller.dart';
 
 class DownloadsScreen extends ConsumerStatefulWidget {
@@ -179,7 +180,10 @@ class _ActiveCard extends ConsumerWidget {
     final live = ref.watch(liveProgressProvider.select((m) => m[d.id]));
     final controller = ref.read(downloadsControllerProvider);
     final paused = d.status == DownloadStatus.paused;
-    final (status, trailing, percent, indeterminate) = _describe(d, live);
+    final (status, trailing, percent, indeterminate) = describeProgress(
+      d,
+      live,
+    );
 
     return Card(
       child: Padding(
@@ -234,7 +238,7 @@ class _ActiveCard extends ConsumerWidget {
             const SizedBox(height: 12),
             Padding(
               padding: const EdgeInsets.only(right: 8),
-              child: _ProgressBar(
+              child: DownloadProgressBar(
                 value: percent,
                 indeterminate: indeterminate,
                 dimmed: paused,
@@ -264,44 +268,52 @@ class _ActiveCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  /// (status text, right-hand text, 0–1 progress, indeterminate)
-  static (String, String?, double, bool) _describe(Download d, TaskEvent? e) {
-    if (d.status == DownloadStatus.paused) return ('Paused', null, 0, false);
-    final p = ((e?.percent ?? 0) / 100).clamp(0.0, 1.0);
-    switch (e?.stage) {
-      case TaskStage.merging:
-        return ('Merging video and audio', 'Almost done', 1, true);
-      case TaskStage.converting:
-        return ('Converting audio', 'Almost done', 1, true);
-      case TaskStage.saving:
-        return ('Saving', 'Almost done', 1, true);
-      case TaskStage.downloading when e!.percent != null && e.percent! > 0:
-        final speed = e.speed == null
-            ? ''
-            : ' · ${e.speed!.replaceAll('B/s', ' B/s').replaceAll('  ', ' ')}';
-        final eta = e.eta == null ? null : '${_eta(e.eta!)} left';
-        return ('Downloading ${e.percent!.round()}%$speed', eta, p, false);
-      default:
-        return (
-          d.status == DownloadStatus.running ? 'Starting' : 'Waiting',
-          null,
-          0,
-          d.status == DownloadStatus.running,
-        );
-    }
+/// (status text, right-hand text, 0–1 progress, indeterminate)
+(String, String?, double, bool) describeProgress(Download d, TaskEvent? e) {
+  final saved = ((d.percent ?? 0) / 100).clamp(0.0, 1.0);
+  if (d.status == DownloadStatus.paused) {
+    final pct = d.percent == null ? '' : ' · ${d.percent!.round()}%';
+    return ('Paused$pct', null, saved, false);
   }
-
-  static String _eta(Duration d) {
-    if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
-    if (d.inMinutes > 0) return '${d.inMinutes}m ${d.inSeconds.remainder(60)}s';
-    return '${d.inSeconds}s';
+  switch (e?.stage) {
+    case TaskStage.merging:
+      return ('Merging video and audio', 'Almost done', 1, true);
+    case TaskStage.converting:
+      return ('Converting audio', 'Almost done', 1, true);
+    case TaskStage.saving:
+      return ('Saving', 'Almost done', 1, true);
+    case TaskStage.downloading when e!.percent != null && e.percent! > 0:
+      final p = (e.percent! / 100).clamp(0.0, 1.0);
+      final speed = e.speed == null ? '' : ' · ${_speed(e.speed!)}';
+      final eta = e.eta == null ? null : '${_eta(e.eta!)} left';
+      return ('Downloading ${e.percent!.round()}%$speed', eta, p, false);
+    default:
+      // Resumed downloads keep showing where they stopped until progress arrives.
+      return (
+        d.status == DownloadStatus.running ? 'Starting' : 'Waiting',
+        null,
+        saved,
+        d.status == DownloadStatus.running && saved == 0,
+      );
   }
 }
 
+/// `2.40MB/s` → `2.40 MB/s`.
+String _speed(String raw) =>
+    raw.replaceFirstMapped(RegExp(r'^([\d.]+)\s*'), (m) => '${m[1]} ');
+
+String _eta(Duration d) {
+  if (d.inHours > 0) return '${d.inHours}h ${d.inMinutes.remainder(60)}m';
+  if (d.inMinutes > 0) return '${d.inMinutes}m ${d.inSeconds.remainder(60)}s';
+  return '${d.inSeconds}s';
+}
+
 /// Saffron progress bar; shimmers while the final size isn't measurable.
-class _ProgressBar extends StatefulWidget {
-  const _ProgressBar({
+class DownloadProgressBar extends StatefulWidget {
+  const DownloadProgressBar({
+    super.key,
     required this.value,
     required this.indeterminate,
     this.dimmed = false,
@@ -312,10 +324,10 @@ class _ProgressBar extends StatefulWidget {
   final bool dimmed;
 
   @override
-  State<_ProgressBar> createState() => _ProgressBarState();
+  State<DownloadProgressBar> createState() => _DownloadProgressBarState();
 }
 
-class _ProgressBarState extends State<_ProgressBar>
+class _DownloadProgressBarState extends State<DownloadProgressBar>
     with SingleTickerProviderStateMixin {
   late final _shimmer = AnimationController(
     vsync: this,
@@ -329,7 +341,7 @@ class _ProgressBarState extends State<_ProgressBar>
   }
 
   @override
-  void didUpdateWidget(_ProgressBar old) {
+  void didUpdateWidget(DownloadProgressBar old) {
     super.didUpdateWidget(old);
     _sync();
   }
@@ -394,13 +406,13 @@ class _ProgressBarState extends State<_ProgressBar>
   }
 }
 
-class _SavedRow extends StatelessWidget {
+class _SavedRow extends ConsumerWidget {
   const _SavedRow({required this.download});
 
   final Download download;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final k = context.k;
     final d = download;
     final meta = [
@@ -408,51 +420,143 @@ class _SavedRow extends StatelessWidget {
       d.quality,
       if (d.sizeBytes != null) formatBytes(d.sizeBytes!),
     ].join(' · ');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      child: Row(
-        children: [
-          MediaThumb(
-            url: d.thumbnail,
-            duration: _durationText(d),
-            width: 80,
-            height: 50,
-            radius: 10,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  d.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                Text(
-                  meta,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+    final justFinished =
+        d.finishedAt != null &&
+        DateTime.now().difference(d.finishedAt!) < const Duration(seconds: 4);
+
+    return InkWell(
+      onTap: () => playDownload(context, ref, d),
+      onLongPress: () => showDownloadActions(context, ref, d),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 4, 10),
+        child: Row(
+          children: [
+            MediaThumb(
+              url: d.thumbnail,
+              duration: _durationText(d),
+              width: 80,
+              height: 50,
+              radius: 10,
             ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: k.tealTint,
-              shape: BoxShape.circle,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    d.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                  Text(
+                    meta,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-            child: Icon(Icons.check_rounded, size: 18, color: k.teal),
-          ),
-        ],
+            const SizedBox(width: 8),
+            DrawnCheck(animate: justFinished),
+            IconButton(
+              tooltip: 'Share',
+              icon: Icon(Icons.share_outlined, color: k.text),
+              onPressed: () => shareDownload(context, ref, d),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+/// Teal check badge; the tick draws itself in when [animate] is true.
+class DrawnCheck extends StatefulWidget {
+  const DrawnCheck({super.key, this.animate = false, this.size = 32});
+
+  final bool animate;
+  final double size;
+
+  @override
+  State<DrawnCheck> createState() => _DrawnCheckState();
+}
+
+class _DrawnCheckState extends State<DrawnCheck>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 400),
+  );
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_c.isAnimating || _c.isCompleted) return;
+    if (widget.animate && !context.reduceMotion) {
+      _c.forward();
+    } else {
+      _c.value = 1;
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final k = context.k;
+    return Semantics(
+      label: 'Saved',
+      child: Container(
+        width: widget.size,
+        height: widget.size,
+        decoration: BoxDecoration(color: k.tealTint, shape: BoxShape.circle),
+        child: AnimatedBuilder(
+          animation: _c,
+          builder: (context, _) => CustomPaint(
+            painter: _CheckPainter(
+              Curves.easeOutCubic.transform(_c.value),
+              k.teal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CheckPainter extends CustomPainter {
+  _CheckPainter(this.t, this.color);
+
+  final double t;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final s = size.width;
+    final path = Path()
+      ..moveTo(s * 0.30, s * 0.52)
+      ..lineTo(s * 0.44, s * 0.66)
+      ..lineTo(s * 0.71, s * 0.37);
+    final metric = path.computeMetrics().first;
+    canvas.drawPath(
+      metric.extractPath(0, metric.length * t),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = s * 0.08
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CheckPainter old) => old.t != t || old.color != color;
 }
 
 class _FailedCard extends ConsumerWidget {

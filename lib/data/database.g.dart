@@ -129,6 +129,17 @@ class $DownloadsTable extends Downloads
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _percentMeta = const VerificationMeta(
+    'percent',
+  );
+  @override
+  late final GeneratedColumn<double> percent = GeneratedColumn<double>(
+    'percent',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _uriMeta = const VerificationMeta('uri');
   @override
   late final GeneratedColumn<String> uri = GeneratedColumn<String>(
@@ -214,6 +225,7 @@ class $DownloadsTable extends Downloads
     extraArgs,
     parts,
     status,
+    percent,
     uri,
     filePath,
     mime,
@@ -322,6 +334,12 @@ class $DownloadsTable extends Downloads
     } else if (isInserting) {
       context.missing(_statusMeta);
     }
+    if (data.containsKey('percent')) {
+      context.handle(
+        _percentMeta,
+        percent.isAcceptableOrUnknown(data['percent']!, _percentMeta),
+      );
+    }
     if (data.containsKey('uri')) {
       context.handle(
         _uriMeta,
@@ -423,6 +441,10 @@ class $DownloadsTable extends Downloads
         DriftSqlType.string,
         data['${effectivePrefix}status'],
       )!,
+      percent: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}percent'],
+      ),
       uri: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}uri'],
@@ -479,6 +501,9 @@ class Download extends DataClass implements Insertable<Download> {
   final String extraArgs;
   final int parts;
   final String status;
+
+  /// Last known progress (0–100), kept so a paused download shows where it stopped.
+  final double? percent;
   final String? uri;
   final String? filePath;
   final String? mime;
@@ -499,6 +524,7 @@ class Download extends DataClass implements Insertable<Download> {
     required this.extraArgs,
     required this.parts,
     required this.status,
+    this.percent,
     this.uri,
     this.filePath,
     this.mime,
@@ -526,6 +552,9 @@ class Download extends DataClass implements Insertable<Download> {
     map['extra_args'] = Variable<String>(extraArgs);
     map['parts'] = Variable<int>(parts);
     map['status'] = Variable<String>(status);
+    if (!nullToAbsent || percent != null) {
+      map['percent'] = Variable<double>(percent);
+    }
     if (!nullToAbsent || uri != null) {
       map['uri'] = Variable<String>(uri);
     }
@@ -566,6 +595,9 @@ class Download extends DataClass implements Insertable<Download> {
       extraArgs: Value(extraArgs),
       parts: Value(parts),
       status: Value(status),
+      percent: percent == null && nullToAbsent
+          ? const Value.absent()
+          : Value(percent),
       uri: uri == null && nullToAbsent ? const Value.absent() : Value(uri),
       filePath: filePath == null && nullToAbsent
           ? const Value.absent()
@@ -602,6 +634,7 @@ class Download extends DataClass implements Insertable<Download> {
       extraArgs: serializer.fromJson<String>(json['extraArgs']),
       parts: serializer.fromJson<int>(json['parts']),
       status: serializer.fromJson<String>(json['status']),
+      percent: serializer.fromJson<double?>(json['percent']),
       uri: serializer.fromJson<String?>(json['uri']),
       filePath: serializer.fromJson<String?>(json['filePath']),
       mime: serializer.fromJson<String?>(json['mime']),
@@ -627,6 +660,7 @@ class Download extends DataClass implements Insertable<Download> {
       'extraArgs': serializer.toJson<String>(extraArgs),
       'parts': serializer.toJson<int>(parts),
       'status': serializer.toJson<String>(status),
+      'percent': serializer.toJson<double?>(percent),
       'uri': serializer.toJson<String?>(uri),
       'filePath': serializer.toJson<String?>(filePath),
       'mime': serializer.toJson<String?>(mime),
@@ -650,6 +684,7 @@ class Download extends DataClass implements Insertable<Download> {
     String? extraArgs,
     int? parts,
     String? status,
+    Value<double?> percent = const Value.absent(),
     Value<String?> uri = const Value.absent(),
     Value<String?> filePath = const Value.absent(),
     Value<String?> mime = const Value.absent(),
@@ -670,6 +705,7 @@ class Download extends DataClass implements Insertable<Download> {
     extraArgs: extraArgs ?? this.extraArgs,
     parts: parts ?? this.parts,
     status: status ?? this.status,
+    percent: percent.present ? percent.value : this.percent,
     uri: uri.present ? uri.value : this.uri,
     filePath: filePath.present ? filePath.value : this.filePath,
     mime: mime.present ? mime.value : this.mime,
@@ -694,6 +730,7 @@ class Download extends DataClass implements Insertable<Download> {
       extraArgs: data.extraArgs.present ? data.extraArgs.value : this.extraArgs,
       parts: data.parts.present ? data.parts.value : this.parts,
       status: data.status.present ? data.status.value : this.status,
+      percent: data.percent.present ? data.percent.value : this.percent,
       uri: data.uri.present ? data.uri.value : this.uri,
       filePath: data.filePath.present ? data.filePath.value : this.filePath,
       mime: data.mime.present ? data.mime.value : this.mime,
@@ -721,6 +758,7 @@ class Download extends DataClass implements Insertable<Download> {
           ..write('extraArgs: $extraArgs, ')
           ..write('parts: $parts, ')
           ..write('status: $status, ')
+          ..write('percent: $percent, ')
           ..write('uri: $uri, ')
           ..write('filePath: $filePath, ')
           ..write('mime: $mime, ')
@@ -746,6 +784,7 @@ class Download extends DataClass implements Insertable<Download> {
     extraArgs,
     parts,
     status,
+    percent,
     uri,
     filePath,
     mime,
@@ -770,6 +809,7 @@ class Download extends DataClass implements Insertable<Download> {
           other.extraArgs == this.extraArgs &&
           other.parts == this.parts &&
           other.status == this.status &&
+          other.percent == this.percent &&
           other.uri == this.uri &&
           other.filePath == this.filePath &&
           other.mime == this.mime &&
@@ -792,6 +832,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
   final Value<String> extraArgs;
   final Value<int> parts;
   final Value<String> status;
+  final Value<double?> percent;
   final Value<String?> uri;
   final Value<String?> filePath;
   final Value<String?> mime;
@@ -813,6 +854,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
     this.extraArgs = const Value.absent(),
     this.parts = const Value.absent(),
     this.status = const Value.absent(),
+    this.percent = const Value.absent(),
     this.uri = const Value.absent(),
     this.filePath = const Value.absent(),
     this.mime = const Value.absent(),
@@ -835,6 +877,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
     this.extraArgs = const Value.absent(),
     this.parts = const Value.absent(),
     required String status,
+    this.percent = const Value.absent(),
     this.uri = const Value.absent(),
     this.filePath = const Value.absent(),
     this.mime = const Value.absent(),
@@ -865,6 +908,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
     Expression<String>? extraArgs,
     Expression<int>? parts,
     Expression<String>? status,
+    Expression<double>? percent,
     Expression<String>? uri,
     Expression<String>? filePath,
     Expression<String>? mime,
@@ -887,6 +931,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
       if (extraArgs != null) 'extra_args': extraArgs,
       if (parts != null) 'parts': parts,
       if (status != null) 'status': status,
+      if (percent != null) 'percent': percent,
       if (uri != null) 'uri': uri,
       if (filePath != null) 'file_path': filePath,
       if (mime != null) 'mime': mime,
@@ -911,6 +956,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
     Value<String>? extraArgs,
     Value<int>? parts,
     Value<String>? status,
+    Value<double?>? percent,
     Value<String?>? uri,
     Value<String?>? filePath,
     Value<String?>? mime,
@@ -933,6 +979,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
       extraArgs: extraArgs ?? this.extraArgs,
       parts: parts ?? this.parts,
       status: status ?? this.status,
+      percent: percent ?? this.percent,
       uri: uri ?? this.uri,
       filePath: filePath ?? this.filePath,
       mime: mime ?? this.mime,
@@ -983,6 +1030,9 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
     if (status.present) {
       map['status'] = Variable<String>(status.value);
     }
+    if (percent.present) {
+      map['percent'] = Variable<double>(percent.value);
+    }
     if (uri.present) {
       map['uri'] = Variable<String>(uri.value);
     }
@@ -1025,6 +1075,7 @@ class DownloadsCompanion extends UpdateCompanion<Download> {
           ..write('extraArgs: $extraArgs, ')
           ..write('parts: $parts, ')
           ..write('status: $status, ')
+          ..write('percent: $percent, ')
           ..write('uri: $uri, ')
           ..write('filePath: $filePath, ')
           ..write('mime: $mime, ')
@@ -1062,6 +1113,7 @@ typedef $$DownloadsTableCreateCompanionBuilder = DownloadsCompanion Function({
   Value<String> extraArgs,
   Value<int> parts,
   required String status,
+  Value<double?> percent,
   Value<String?> uri,
   Value<String?> filePath,
   Value<String?> mime,
@@ -1084,6 +1136,7 @@ typedef $$DownloadsTableUpdateCompanionBuilder = DownloadsCompanion Function({
   Value<String> extraArgs,
   Value<int> parts,
   Value<String> status,
+  Value<double?> percent,
   Value<String?> uri,
   Value<String?> filePath,
   Value<String?> mime,
@@ -1160,6 +1213,11 @@ class $$DownloadsTableFilterComposer
 
   ColumnFilters<String> get status => $composableBuilder(
     column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get percent => $composableBuilder(
+    column: $table.percent,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1268,6 +1326,11 @@ class $$DownloadsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get percent => $composableBuilder(
+    column: $table.percent,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get uri => $composableBuilder(
     column: $table.uri,
     builder: (column) => ColumnOrderings(column),
@@ -1351,6 +1414,9 @@ class $$DownloadsTableAnnotationComposer
   GeneratedColumn<String> get status =>
       $composableBuilder(column: $table.status, builder: (column) => column);
 
+  GeneratedColumn<double> get percent =>
+      $composableBuilder(column: $table.percent, builder: (column) => column);
+
   GeneratedColumn<String> get uri =>
       $composableBuilder(column: $table.uri, builder: (column) => column);
 
@@ -1415,6 +1481,7 @@ class $$DownloadsTableTableManager
                 Value<String> extraArgs = const Value.absent(),
                 Value<int> parts = const Value.absent(),
                 Value<String> status = const Value.absent(),
+                Value<double?> percent = const Value.absent(),
                 Value<String?> uri = const Value.absent(),
                 Value<String?> filePath = const Value.absent(),
                 Value<String?> mime = const Value.absent(),
@@ -1436,6 +1503,7 @@ class $$DownloadsTableTableManager
                 extraArgs: extraArgs,
                 parts: parts,
                 status: status,
+                percent: percent,
                 uri: uri,
                 filePath: filePath,
                 mime: mime,
@@ -1459,6 +1527,7 @@ class $$DownloadsTableTableManager
                 Value<String> extraArgs = const Value.absent(),
                 Value<int> parts = const Value.absent(),
                 required String status,
+                Value<double?> percent = const Value.absent(),
                 Value<String?> uri = const Value.absent(),
                 Value<String?> filePath = const Value.absent(),
                 Value<String?> mime = const Value.absent(),
@@ -1480,6 +1549,7 @@ class $$DownloadsTableTableManager
                 extraArgs: extraArgs,
                 parts: parts,
                 status: status,
+                percent: percent,
                 uri: uri,
                 filePath: filePath,
                 mime: mime,

@@ -45,6 +45,7 @@ class FakeDownloader implements Downloader {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
   late ProviderContainer container;
@@ -148,8 +149,11 @@ void main() {
   test('pause keeps the row; cancel removes it', () async {
     final id = await startOne();
     final c = container.read(downloadsControllerProvider);
+    await emit(TaskEvent(taskId: id, status: TaskStatus.running, percent: 64));
     await c.pause(id);
     expect((await onlyRow()).status, DownloadStatus.paused);
+    // The bar keeps showing where it stopped.
+    expect((await onlyRow()).percent, 64);
     // The native side reports the stopped worker as cancelled; a paused row stays.
     await emit(TaskEvent(taskId: id, status: TaskStatus.cancelled));
     expect((await onlyRow()).status, DownloadStatus.paused);

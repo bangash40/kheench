@@ -29,6 +29,8 @@ object EngineCore {
     fun withDefaults(context: Context, request: YoutubeDLRequest): YoutubeDLRequest {
         val qjs = File(context.applicationInfo.nativeLibraryDir, "libqjs.so")
         if (qjs.exists()) request.addOption("--js-runtimes", "quickjs:${qjs.absolutePath}")
+        // Some short-link redirects (e.g. vm.tiktok.com) take 10+ seconds.
+        request.addOption("--socket-timeout", 30)
         return request
     }
 }

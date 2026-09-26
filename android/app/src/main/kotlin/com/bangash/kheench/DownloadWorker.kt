@@ -145,7 +145,8 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
 
     private fun onOutput(progress: Float, eta: Long, line: String) {
         when {
-            line.startsWith("[download] Destination:") -> part = (part + 1).coerceAtMost(parts)
+            line.startsWith("[download] Destination:") ||
+                line.endsWith("has already been downloaded") -> part = (part + 1).coerceAtMost(parts)
             line.startsWith("[Merger]") -> stage = "merging"
             line.startsWith("[ExtractAudio]") || line.startsWith("[VideoConvertor]") -> stage = "converting"
         }

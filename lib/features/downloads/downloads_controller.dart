@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:drift/drift.dart' show Value;
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/database.dart';
@@ -83,10 +84,14 @@ class DownloadsController {
   }
 
   Future<void> pause(String id) async {
+    final last = _ref.read(liveProgressProvider)[id]?.percent;
     await _downloader.pause(id);
     await _db.patch(
       id,
-      const DownloadsCompanion(status: Value(DownloadStatus.paused)),
+      DownloadsCompanion(
+        status: const Value(DownloadStatus.paused),
+        percent: last == null ? const Value.absent() : Value(last),
+      ),
     );
     _markedRunning.remove(id);
     _live.drop(id);
@@ -160,13 +165,15 @@ class DownloadsController {
     }
   }
 
-  Future<void> _finish(TaskEvent e) async {
+  Future<void> _finish(TaskEvent e, {bool live = true}) async {
     _markedRunning.remove(e.taskId);
     _live.drop(e.taskId);
+    if (live) unawaited(HapticFeedback.lightImpact());
     await _db.patch(
       e.taskId,
       DownloadsCompanion(
         status: const Value(DownloadStatus.done),
+        percent: const Value(100),
         uri: Value(e.uri),
         filePath: Value(e.path),
         mime: Value(e.mime),
@@ -204,7 +211,7 @@ class DownloadsController {
       final s = byId[row.id];
       switch (s?.status) {
         case TaskStatus.done:
-          await _finish(s!);
+          await _finish(s!, live: false);
         case TaskStatus.failed:
           await _fail(row.id, s!.error ?? 'Download failed');
         case TaskStatus.cancelled:

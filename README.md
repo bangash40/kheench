@@ -18,7 +18,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Paste a link → preview → pick from every video/audio quality, with clear error messages | Done |
 | Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
 | Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
-| Play, share, open and delete saved files; real "Recent" list on Home | Planned |
+| Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |

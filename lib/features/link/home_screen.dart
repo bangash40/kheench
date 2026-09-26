@@ -7,12 +7,12 @@ import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../engine/download_choice.dart';
 import '../../engine/engine.dart';
-import '../../widgets/common.dart';
 import '../downloads/downloads_controller.dart';
 import '../../widgets/kheench_mark.dart';
 import 'link_lookup.dart';
 import 'preview_card.dart';
 import 'quality_sheet.dart';
+import 'recent_list.dart';
 
 /// First http(s) link in [text]; apps often share "Look at this https://…".
 String? extractUrl(String text) {
@@ -105,6 +105,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text('Downloading ${choice.label}'),
+          // Snackbars with an action stay until tapped unless told otherwise.
+          persist: false,
           action: SnackBarAction(
             label: 'View',
             textColor: KColors.saffron,
@@ -212,11 +214,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ],
           ),
           const SizedBox(height: 8),
-          EmptyState(
-            icon: Icons.download_rounded,
-            title: 'Nothing downloaded yet',
-            message: 'Paste a link above or share one to Kheench from any app.',
-          ),
+          const RecentList(),
         ],
       ),
     );

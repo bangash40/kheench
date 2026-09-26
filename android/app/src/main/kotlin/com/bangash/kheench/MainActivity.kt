@@ -1,6 +1,7 @@
 package com.bangash.kheench
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
@@ -8,12 +9,21 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 
 class MainActivity : FlutterActivity() {
+    private var files: FileChannel? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         val messenger = flutterEngine.dartExecutor.binaryMessenger
         EngineChannel(applicationContext) { runOnUiThread(::requestDownloadPermissions) }
             .register(messenger)
         ProgressBus.register(messenger)
+        files = FileChannel(this).also { it.register(messenger) }
+    }
+
+    @Deprecated("Needed for startIntentSenderForResult on older APIs")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (files?.onActivityResult(requestCode, resultCode) == true) return
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     /** Notifications (Android 13+) and storage (Android 9 and older), asked once when needed. */

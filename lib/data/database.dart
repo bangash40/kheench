@@ -36,6 +36,9 @@ class Downloads extends Table {
   IntColumn get parts => integer().withDefault(const Constant(1))();
 
   TextColumn get status => text()();
+
+  /// Last known progress (0–100), kept so a paused download shows where it stopped.
+  RealColumn get percent => real().nullable()();
   TextColumn get uri => text().nullable()();
   TextColumn get filePath => text().nullable()();
   TextColumn get mime => text().nullable()();
@@ -54,7 +57,14 @@ class AppDatabase extends _$AppDatabase {
     : super(executor ?? driftDatabase(name: 'kheench'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) await m.addColumn(downloads, downloads.percent);
+    },
+  );
 
   Stream<List<Download>> watchAll() => (select(
     downloads,
