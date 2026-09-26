@@ -59,4 +59,6 @@ dependencies {
     val ytdlVersion = "0.18.1"
     implementation("io.github.junkfood02.youtubedl-android:library:$ytdlVersion")
     implementation("io.github.junkfood02.youtubedl-android:ffmpeg:$ytdlVersion")
+    implementation("androidx.work:work-runtime-ktx:2.12.0")
+    implementation("androidx.core:core-ktx:1.17.0")
 }

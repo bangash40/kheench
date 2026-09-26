@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../engine/download_choice.dart';
+import '../../engine/downloader.dart';
 import '../../engine/engine.dart';
 import '../../widgets/common.dart';
 import '../../widgets/kheench_mark.dart';
@@ -88,9 +89,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     _startDownload(choice);
   }
 
-  void _startDownload(DownloadChoice choice) {
-    // The download manager is wired up next; for now confirm the pick.
-    _snack('Picked ${choice.label}. Downloading is coming in the next update');
+  Future<void> _startDownload(DownloadChoice choice) async {
+    final state = ref.read(linkLookupProvider);
+    if (state is! LookupLoaded) return;
+    try {
+      await ref
+          .read(downloaderProvider)
+          .enqueue(
+            taskId: Downloader.newTaskId(),
+            url: state.info.url.isEmpty ? state.url : state.info.url,
+            title: state.info.title,
+            choice: choice,
+          );
+      if (mounted) _snack('Downloading ${choice.label}. See notifications');
+    } on EngineException catch (e) {
+      if (mounted) _snack("Couldn't start download: ${e.message}");
+    }
   }
 
   Future<void> _updateEngineAndRetry() async {

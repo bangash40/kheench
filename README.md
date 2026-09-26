@@ -16,7 +16,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Home, Status, Downloads, Tools and Settings screens (layout) | Done |
 | Bundled download engine (yt-dlp + FFmpeg) with version shown and in-app update | Done |
 | Paste a link → preview → pick from every video/audio quality, with clear error messages | Done |
-| Download the picked quality: background downloads with progress, pause, cancel, retry and history | Planned |
+| Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
+| Downloads screen: live queue, pause, cancel, retry, parallel limit and history | Planned |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |
@@ -28,7 +29,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 
 - **Flutter** (Dart 3) for the UI
 - **Riverpod** for state, **go_router** for navigation
-- **Kotlin** native layer on Android, talking to Flutter over a `MethodChannel` (`kheench/engine`)
+- **Kotlin** native layer on Android, talking to Flutter over a `MethodChannel` (`kheench/engine`) and an `EventChannel` for progress (`kheench/progress`)
+- **WorkManager** foreground workers run downloads in the background; **MediaStore** publishes finished files to shared storage
 - **yt-dlp + FFmpeg** via [`youtubedl-android`](https://github.com/JunkFood02/youtubedl-android), bundled in the APK and updatable from Settings
 - Planned native pieces: status folder access and video splitting
 - Fonts: **Bricolage Grotesque** (display) and **DM Sans** (body), bundled in the app so nothing is fetched at runtime
@@ -75,7 +77,7 @@ lib/
   widgets/      shared widgets and the Kheench logo mark
 test/           unit and widget tests; fixtures/ holds trimmed yt-dlp JSON samples
 assets/fonts/   bundled font files
-android/        Android app, launcher icon, launch screen and the Kotlin engine bridge
+android/        Android app, launcher icon, launch screen, Kotlin engine bridge and download worker
 ```
 
 ## Privacy
