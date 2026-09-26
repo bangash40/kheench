@@ -1,6 +1,8 @@
 package com.bangash.kheench
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -56,12 +58,21 @@ class EngineChannel(
             "pause" -> run(result) { stop(call.argument<String>("taskId")!!, pause = true) }
             "cancel" -> run(result) { stop(call.argument<String>("taskId")!!, pause = false) }
             "taskStates" -> run(result) { taskStates() }
+            "isUnmetered" -> result.success(isUnmetered())
             "setParallel" -> {
                 DownloadWorker.setParallelLimit(context, call.argument<Int>("value") ?: 2)
                 result.success(true)
             }
             else -> result.notImplemented()
         }
+    }
+
+    /** True on Wi-Fi or another connection that isn't billed by data. */
+    private fun isUnmetered(): Boolean {
+        val cm = context.getSystemService(ConnectivityManager::class.java) ?: return false
+        val caps = cm.getNetworkCapabilities(cm.activeNetwork) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+            caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
     }
 
     private fun version(): String {

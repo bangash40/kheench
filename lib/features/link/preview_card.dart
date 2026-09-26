@@ -13,6 +13,7 @@ class PreviewArea extends StatelessWidget {
     super.key,
     required this.state,
     required this.onChooseQuality,
+    this.askFirst = true,
     required this.onRetry,
     required this.onUpdateEngine,
     required this.onClear,
@@ -21,6 +22,9 @@ class PreviewArea extends StatelessWidget {
 
   final LookupState state;
   final VoidCallback onChooseQuality;
+
+  /// False when a default quality downloads straight away.
+  final bool askFirst;
   final VoidCallback onRetry;
   final VoidCallback onUpdateEngine;
   final VoidCallback onClear;
@@ -38,6 +42,7 @@ class PreviewArea extends StatelessWidget {
         key: ValueKey('loaded-${info.id}'),
         info: info,
         onChooseQuality: onChooseQuality,
+        askFirst: askFirst,
         onClear: onClear,
       ),
       LookupFailed(:final error) => _ErrorCard(
@@ -72,11 +77,13 @@ class _PreviewCard extends StatelessWidget {
     super.key,
     required this.info,
     required this.onChooseQuality,
+    required this.askFirst,
     required this.onClear,
   });
 
   final MediaInfo info;
   final VoidCallback onChooseQuality;
+  final bool askFirst;
   final VoidCallback onClear;
 
   @override
@@ -152,7 +159,9 @@ class _PreviewCard extends StatelessWidget {
                 label: Text(
                   info.isLive
                       ? 'Live streams aren\'t supported yet'
-                      : 'Choose quality',
+                      : askFirst
+                      ? 'Choose quality'
+                      : 'More qualities',
                 ),
               ),
             ),

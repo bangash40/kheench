@@ -9,6 +9,8 @@ import '../../engine/download_choice.dart';
 import '../../engine/engine.dart';
 import '../downloads/downloads_controller.dart';
 import '../../widgets/kheench_mark.dart';
+import '../settings/settings_providers.dart';
+import 'default_choice.dart';
 import 'link_lookup.dart';
 import 'preview_card.dart';
 import 'quality_sheet.dart';
@@ -149,8 +151,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final lookup = ref.watch(linkLookupProvider);
 
     // Open the quality sheet as soon as a link finishes loading.
+    // When a link loads, start the default download or open the picker.
     ref.listen(linkLookupProvider, (previous, next) {
-      if (next is LookupLoaded && previous is LookupLoading) _openSheet();
+      if (next is! LookupLoaded || previous is! LookupLoading) return;
+      final auto = choiceForDefault(next.info, ref.read(settingsProvider));
+      if (auto == null) {
+        _openSheet();
+      } else {
+        _startDownload(auto);
+      }
     });
 
     return SafeArea(
@@ -189,6 +198,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           PreviewArea(
             state: lookup,
             onChooseQuality: _openSheet,
+            askFirst:
+                ref.watch(settingsProvider).defaultQuality ==
+                DefaultQuality.ask,
             onRetry: _retry,
             onUpdateEngine: _updateEngineAndRetry,
             onClear: _clear,

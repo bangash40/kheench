@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../engine/auto_update.dart';
 import '../features/downloads/downloads_controller.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -22,6 +23,8 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Keep the controller alive so native progress events are always recorded.
     ref.watch(downloadsControllerProvider);
+    // Weekly engine update check (Wi-Fi only, never mid-download).
+    ref.watch(engineAutoUpdateProvider);
     final active = ref.watch(activeCountProvider);
 
     return Scaffold(

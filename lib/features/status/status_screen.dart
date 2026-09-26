@@ -9,6 +9,7 @@ import '../../app/theme.dart';
 import '../../engine/status_source.dart';
 import '../../engine/media_info.dart';
 import '../../widgets/common.dart';
+import '../settings/settings_providers.dart';
 import 'status_saver.dart';
 import 'status_viewer.dart';
 
@@ -293,6 +294,42 @@ class _StatusTabsState extends ConsumerState<_StatusTabs> {
   TabController? _tabs;
 
   StatusApp get app => widget.app;
+  bool _autoSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Auto-save runs on every load and pull-to-refresh when it's switched on.
+    ref.listenManual(
+      statusItemsProvider(app),
+      (_, next) => next.whenData(_autoSave),
+      fireImmediately: true,
+    );
+  }
+
+  Future<void> _autoSave(List<StatusItem> items) async {
+    if (_autoSaving || !ref.read(settingsProvider).autoSaveStatuses) return;
+    _autoSaving = true;
+    try {
+      final saved = await ref.read(savedStatusHashesProvider.future);
+      final fresh = items
+          .where((i) => !saved.contains(i.hashFor(app)))
+          .toList();
+      if (fresh.isEmpty) return;
+      final count = await ref.read(statusSaverProvider).save(app, fresh);
+      if (mounted && count > 0) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text('Auto-saved ${_plural(count)}')),
+          );
+      }
+    } catch (_) {
+      // Auto-save is best effort; the manual Save still works.
+    } finally {
+      _autoSaving = false;
+    }
+  }
 
   @override
   void didChangeDependencies() {

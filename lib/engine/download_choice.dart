@@ -50,6 +50,20 @@ class DownloadChoice {
     sizeIsEstimate: true,
   );
 
+  /// Best audio as M4A; converts when the site only offers audio inside video.
+  factory DownloadChoice.m4a(MediaInfo info) {
+    final m4a = info.audios.where((a) => a.ext == 'm4a').firstOrNull;
+    return DownloadChoice._(
+      id: 'm4a',
+      label: 'M4A audio',
+      kind: DownloadKind.audio,
+      selector: 'ba[ext=m4a]/ba/b',
+      extraArgs: const ['-x', '--audio-format', 'm4a'],
+      sizeBytes: (m4a ?? info.bestAudio)?.sizeBytes,
+      sizeIsEstimate: m4a == null,
+    );
+  }
+
   factory DownloadChoice.video(VideoOption v) => DownloadChoice._(
     id: 'v:${v.formatId}',
     label: '${v.label} ${v.container}',

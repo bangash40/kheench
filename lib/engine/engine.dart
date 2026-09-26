@@ -30,6 +30,15 @@ class Engine {
         : EngineUpdateResult.alreadyUpToDate;
   }
 
+  /// True on Wi-Fi or another connection that isn't billed by data.
+  Future<bool> isUnmetered() async {
+    try {
+      return await _call<bool>('isUnmetered');
+    } on EngineException {
+      return false;
+    }
+  }
+
   Future<T> _call<T>(String method, [Map<String, Object?>? args]) async {
     try {
       final value = await _channel.invokeMethod<T>(method, args);

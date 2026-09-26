@@ -23,7 +23,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback) | Done |
 | Save statuses: long-press to multi-select, Select all, Save from the grid or the preview; saved ones are marked | Done |
 | Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, engine update | Done |
-| Default quality skips the picker, auto-save runs, weekly engine update check on Wi-Fi | Planned |
+| Default quality downloads straight away (picker still one tap away), status auto-save, weekly engine update on Wi-Fi when idle | Done |
 | Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
 | Status splitter: cut long videos into status-length parts and share them in order | Planned |
