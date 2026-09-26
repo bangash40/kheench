@@ -65,19 +65,29 @@ class SavedStatuses extends Table {
   Set<Column> get primaryKey => {hash};
 }
 
-@DriftDatabase(tables: [Downloads, SavedStatuses])
+/// App settings as simple key/value pairs.
+class Settings extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+@DriftDatabase(tables: [Downloads, SavedStatuses, Settings])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
     : super(executor ?? driftDatabase(name: 'kheench'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onUpgrade: (m, from, to) async {
       if (from < 2) await m.addColumn(downloads, downloads.percent);
       if (from < 3) await m.createTable(savedStatuses);
+      if (from < 4) await m.createTable(settings);
     },
   );
 
@@ -112,6 +122,13 @@ class AppDatabase extends _$AppDatabase {
 
   Future<void> markStatusSaved(SavedStatusesCompanion row) =>
       into(savedStatuses).insertOnConflictUpdate(row);
+
+  Future<Map<String, String>> readSettings() async => {
+    for (final row in await select(settings).get()) row.key: row.value,
+  };
+
+  Future<void> writeSetting(String key, String value) => into(settings)
+      .insertOnConflictUpdate(SettingsCompanion.insert(key: key, value: value));
 }
 
 final databaseProvider = Provider<AppDatabase>((ref) {

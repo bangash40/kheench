@@ -22,8 +22,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback) | Done |
 | Save statuses: long-press to multi-select, Select all, Save from the grid or the preview; saved ones are marked | Done |
-| Auto-save new statuses when the app opens (setting) | Planned |
-| Settings: default quality, audio format, parallel downloads | Planned |
+| Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, engine update | Done |
+| Default quality skips the picker, auto-save runs, weekly engine update check on Wi-Fi | Planned |
 | Logged-in downloads (Instagram, Facebook, X, TikTok) using your own account | Planned |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
 | Status splitter: cut long videos into status-length parts and share them in order | Planned |
