@@ -17,7 +17,8 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Bundled download engine (yt-dlp + FFmpeg) with version shown and in-app update | Done |
 | Paste a link → preview → pick from every video/audio quality, with clear error messages | Done |
 | Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
-| Downloads screen: live queue, pause, cancel, retry, parallel limit and history | Planned |
+| Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
+| Play, share, open and delete saved files; real "Recent" list on Home | Planned |
 | Share links to Kheench from other apps, clipboard link detection | Planned |
 | WhatsApp and WhatsApp Business status saver (videos and photos) | Planned |
 | Settings: default quality, audio format, parallel downloads | Planned |
@@ -29,6 +30,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 
 - **Flutter** (Dart 3) for the UI
 - **Riverpod** for state, **go_router** for navigation
+- **drift** (SQLite) for the download queue and history
 - **Kotlin** native layer on Android, talking to Flutter over a `MethodChannel` (`kheench/engine`) and an `EventChannel` for progress (`kheench/progress`)
 - **WorkManager** foreground workers run downloads in the background; **MediaStore** publishes finished files to shared storage
 - **yt-dlp + FFmpeg** via [`youtubedl-android`](https://github.com/JunkFood02/youtubedl-android), bundled in the APK and updatable from Settings
@@ -55,6 +57,12 @@ Build a release APK:
 flutter build apk --release --split-per-abi
 ```
 
+Regenerate database code after changing tables:
+
+```bash
+dart run build_runner build
+```
+
 Run checks:
 
 ```bash
@@ -67,6 +75,7 @@ flutter test
 ```
 lib/
   app/          theme, router, navigation shell, splash, motion helpers
+  data/         drift database (downloads table)
   engine/       native engine bridge, yt-dlp format parsing, error messages
   features/
     link/       home screen, link preview and the quality picker sheet

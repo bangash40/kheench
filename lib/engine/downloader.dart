@@ -3,7 +3,6 @@ import 'dart:math';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'download_choice.dart';
 import 'engine.dart';
 
 enum TaskStatus { waiting, running, paused, done, failed, cancelled }
@@ -81,15 +80,18 @@ class Downloader {
     required String taskId,
     required String url,
     required String title,
-    required DownloadChoice choice,
+    required String selector,
+    required List<String> args,
+    required String kind,
+    required int parts,
   }) => _call('enqueue', {
     'taskId': taskId,
     'url': url,
     'title': title,
-    'selector': choice.selector,
-    'args': choice.extraArgs,
-    'kind': choice.kind.name,
-    'parts': choice.selector.contains('+') ? 2 : 1,
+    'selector': selector,
+    'args': args,
+    'kind': kind,
+    'parts': parts,
   });
 
   Future<void> pause(String taskId) => _call('pause', {'taskId': taskId});

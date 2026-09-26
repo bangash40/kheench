@@ -6,9 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../app/motion.dart';
 import '../../app/theme.dart';
 import '../../engine/download_choice.dart';
-import '../../engine/downloader.dart';
 import '../../engine/engine.dart';
 import '../../widgets/common.dart';
+import '../downloads/downloads_controller.dart';
 import '../../widgets/kheench_mark.dart';
 import 'link_lookup.dart';
 import 'preview_card.dart';
@@ -92,19 +92,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Future<void> _startDownload(DownloadChoice choice) async {
     final state = ref.read(linkLookupProvider);
     if (state is! LookupLoaded) return;
-    try {
-      await ref
-          .read(downloaderProvider)
-          .enqueue(
-            taskId: Downloader.newTaskId(),
-            url: state.info.url.isEmpty ? state.url : state.info.url,
-            title: state.info.title,
-            choice: choice,
-          );
-      if (mounted) _snack('Downloading ${choice.label}. See notifications');
-    } on EngineException catch (e) {
-      if (mounted) _snack("Couldn't start download: ${e.message}");
-    }
+    await ref
+        .read(downloadsControllerProvider)
+        .start(
+          info: state.info,
+          url: state.info.url.isEmpty ? state.url : state.info.url,
+          choice: choice,
+        );
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text('Downloading ${choice.label}'),
+          action: SnackBarAction(
+            label: 'View',
+            textColor: KColors.saffron,
+            onPressed: () => context.go('/downloads'),
+          ),
+        ),
+      );
   }
 
   Future<void> _updateEngineAndRetry() async {

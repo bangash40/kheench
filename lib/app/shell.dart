@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../features/downloads/downloads_controller.dart';
 import 'motion.dart';
 import 'theme.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
@@ -17,7 +19,11 @@ class AppShell extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // Keep the controller alive so native progress events are always recorded.
+    ref.watch(downloadsControllerProvider);
+    final active = ref.watch(activeCountProvider);
+
     return Scaffold(
       body: shell,
       bottomNavigationBar: DecoratedBox(
@@ -30,15 +36,30 @@ class AppShell extends StatelessWidget {
           onDestinationSelected: (i) =>
               shell.goBranch(i, initialLocation: i == shell.currentIndex),
           destinations: [
-            for (final (outlined, filled, label) in _items)
+            for (final (i, (outlined, filled, label)) in _items.indexed)
               NavigationDestination(
-                icon: Icon(outlined),
-                selectedIcon: Icon(filled),
+                icon: _badged(context, Icon(outlined), i == 2 ? active : 0),
+                selectedIcon: _badged(
+                  context,
+                  Icon(filled),
+                  i == 2 ? active : 0,
+                ),
                 label: label,
               ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _badged(BuildContext context, Widget icon, int count) {
+    return Badge(
+      isLabelVisible: count > 0,
+      label: Text('$count'),
+      backgroundColor: context.k.teal,
+      textColor: KColors.white,
+      offset: const Offset(10, -6),
+      child: icon,
     );
   }
 }
