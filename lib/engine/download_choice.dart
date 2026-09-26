@@ -66,7 +66,7 @@ class DownloadChoice {
 
   factory DownloadChoice.video(VideoOption v) => DownloadChoice._(
     id: 'v:${v.formatId}',
-    label: '${v.label} ${v.container}',
+    label: '${v.label} ${v.container}${v.watermarked ? ' (watermark)' : ''}',
     kind: DownloadKind.video,
     selector: v.selector,
     extraArgs: v.needsAudio ? _merge : const [],

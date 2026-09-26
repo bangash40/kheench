@@ -86,6 +86,8 @@ class EngineChannel(
     }
 
     private fun fetchInfo(url: String): String {
+        // TikTok blocks yt-dlp on Android; read it through a hidden WebView.
+        if (TikTokResolver.handles(url)) return TikTokResolver.resolve(context, url)
         EngineCore.ensureReady(context)
         val request = YoutubeDLRequest(url)
             .addOption("--dump-single-json")

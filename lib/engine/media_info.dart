@@ -86,6 +86,7 @@ class VideoOption {
     this.sizeBytes,
     this.sizeIsEstimate = false,
     this.mergeAudio,
+    this.watermarked = false,
   });
 
   final String formatId;
@@ -108,6 +109,9 @@ class VideoOption {
 
   /// Audio stream that will be merged in, when [needsAudio].
   final AudioOption? mergeAudio;
+
+  /// TikTok's original with the logo burned in (offered as an extra option).
+  final bool watermarked;
 
   String get container => ext.toUpperCase();
 
@@ -219,6 +223,7 @@ class _RawFormat {
   bool get isDirect =>
       protocol.startsWith('http') && !protocol.contains('m3u8');
   bool get isDrc => id.endsWith('-drc');
+  bool get isWatermarked => note?.toLowerCase() == 'watermarked';
 
   /// (bytes, isEstimate)
   (int?, bool) size(double? durationSeconds) {
@@ -275,7 +280,9 @@ List<VideoOption> _pickVideos(
         continue;
       }
     }
-    final key = '${f.height ?? 0}@${_fpsBucket(f.fps)}';
+    // Watermarked copies are kept as their own option, not merged away.
+    final key =
+        '${f.height ?? 0}@${_fpsBucket(f.fps)}${f.isWatermarked ? '-wm' : ''}';
     final current = best[key];
     if (current == null || _videoScore(f) > _videoScore(current)) {
       best[key] = f;
@@ -311,8 +318,11 @@ List<VideoOption> _pickVideos(
           sizeBytes: bytes,
           sizeIsEstimate: estimate,
           mergeAudio: merge,
+          watermarked: f.isWatermarked,
         );
       }).toList()..sort((a, b) {
+        // Watermarked copies go last so they're never the default pick.
+        if (a.watermarked != b.watermarked) return a.watermarked ? 1 : -1;
         final h = b.height.compareTo(a.height);
         return h != 0 ? h : (b.fps ?? 0).compareTo(a.fps ?? 0);
       });

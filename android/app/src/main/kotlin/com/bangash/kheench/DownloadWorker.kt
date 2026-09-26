@@ -50,14 +50,23 @@ class DownloadWorker(context: Context, params: WorkerParameters) :
             emit(stage = stage, percent = 0.0)
             updateForeground("Starting", 0, indeterminate = true)
 
-            val request = YoutubeDLRequest(inputData.getString(KEY_URL)!!)
+            val url = inputData.getString(KEY_URL)!!
+            // TikTok: use the details the WebView already read (see TikTokResolver).
+            val tiktokInfo = TikTokResolver.infoFile(applicationContext, url)
+                .takeIf { TikTokResolver.handles(url) && it.exists() }
+            val request = (if (tiktokInfo != null) YoutubeDLRequest(emptyList()) else YoutubeDLRequest(url))
                 .addOption("-f", inputData.getString(KEY_SELECTOR) ?: "bv*+ba/b")
                 .addOption("-o", "${dir.absolutePath}/%(title).120B [%(id)s].%(ext)s")
                 .addOption("--no-playlist")
                 .addOption("--no-mtime")
                 .addCommands(inputData.getStringArray(KEY_ARGS)?.toList().orEmpty())
 
-            EngineCore.withDefaults(applicationContext, request, inputData.getString(KEY_URL)!!)
+            EngineCore.withDefaults(applicationContext, request, url)
+            if (tiktokInfo != null) {
+                request.addOption("--load-info-json", tiktokInfo.absolutePath)
+                // Added after the defaults so these page cookies win.
+                request.addOption("--cookies", TikTokResolver.cookieFile(applicationContext, url).absolutePath)
+            }
             runWithRetries(request)
 
             stage = "saving"

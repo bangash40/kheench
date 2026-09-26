@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:kheench/engine/download_choice.dart';
 import 'package:kheench/engine/engine_error.dart';
 import 'package:kheench/engine/media_info.dart';
 
@@ -74,7 +75,10 @@ void main() {
 
     test('keeps streams that already have sound', () {
       expect(info.site, 'TikTok');
-      expect(info.videos, hasLength(2));
+      // 1024p and 720p without watermark, plus the watermarked original last.
+      expect(info.videos, hasLength(3));
+      expect(info.videos.last.formatId, 'download');
+      expect(info.videos.last.watermarked, isTrue);
       expect(info.videos.first.needsAudio, isFalse);
       expect(info.videos.first.selector, info.videos.first.formatId);
       expect(info.audios, isEmpty);
@@ -149,5 +153,71 @@ void main() {
         isTrue,
       );
     });
+  });
+
+  group('TikTok details from the WebView resolver', () {
+    final info = MediaInfo.fromJson({
+      'id': '7689',
+      'title': 'Dance',
+      'duration': 15,
+      'extractor_key': 'TikTok',
+      'webpage_url': 'https://www.tiktok.com/@a/video/7689',
+      'formats': [
+        {
+          'format_id': 'normal_540_0',
+          'url': 'https://v16-webapp.tiktok.com/a',
+          'ext': 'mp4',
+          'vcodec': 'h264',
+          'acodec': 'aac',
+          'height': 1024,
+          'width': 576,
+          'filesize': 3000000,
+          'tbr': 900.0,
+          'format_note': 'No watermark',
+        },
+        {
+          'format_id': 'lowest_540_0',
+          'url': 'https://v16-webapp.tiktok.com/b',
+          'ext': 'mp4',
+          'vcodec': 'h265',
+          'acodec': 'aac',
+          'height': 1024,
+          'width': 576,
+          'filesize': 1500000,
+          'tbr': 450.0,
+          'format_note': 'No watermark',
+        },
+        {
+          'format_id': 'watermarked',
+          'url': 'https://v16-webapp.tiktok.com/c',
+          'ext': 'mp4',
+          'vcodec': 'h264',
+          'acodec': 'aac',
+          'height': 1024,
+          'width': 576,
+          'format_note': 'Watermarked',
+        },
+      ],
+    });
+
+    test('offers no-watermark first and keeps the watermarked copy', () {
+      expect(info.site, 'TikTok');
+      expect(info.videos, hasLength(2));
+      expect(info.videos.first.formatId, 'normal_540_0');
+      expect(info.videos.first.watermarked, isFalse);
+      expect(info.videos.last.watermarked, isTrue);
+      expect(
+        DownloadChoice.video(info.videos.last).label,
+        '1024p MP4 (watermark)',
+      );
+    });
+  });
+
+  test('Kheench messages are shown as written', () {
+    final e = EngineError.from(
+      "java.lang.IllegalStateException: KHEENCH:TikTok photo slideshows aren't supported yet.",
+    );
+    expect(e.message, "TikTok photo slideshows aren't supported yet.");
+    expect(e.suggestsUpdate, isFalse);
   });
 }

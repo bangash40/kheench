@@ -101,7 +101,11 @@ class _QualitySheetState extends State<QualitySheet> {
                         _OptionRow(
                           title: v.label,
                           container: v.container,
-                          badge: v.needsAudio ? 'audio added' : null,
+                          badge: v.needsAudio
+                              ? 'audio added'
+                              : v.watermarked
+                              ? 'watermark'
+                              : null,
                           subtitle: _join([
                             v.codec,
                             DownloadChoice.video(v).sizeText,

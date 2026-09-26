@@ -8,7 +8,13 @@ enum EngineErrorKind {
 }
 
 class EngineError {
-  const EngineError(this.kind, this.raw);
+  const EngineError(this.kind, this.raw, {this.custom});
+
+  /// Prefix native code uses for messages meant for the user as they are.
+  static const userMessagePrefix = 'KHEENCH:';
+
+  /// A ready-to-show message from Kheench itself.
+  final String? custom;
 
   final EngineErrorKind kind;
 
@@ -16,6 +22,15 @@ class EngineError {
   final String raw;
 
   factory EngineError.from(String message) {
+    // Messages Kheench wrote for the user are shown as they are.
+    final own = message.indexOf(userMessagePrefix);
+    if (own >= 0) {
+      return EngineError(
+        EngineErrorKind.unknown,
+        message,
+        custom: message.substring(own + userMessagePrefix.length).trim(),
+      );
+    }
     final m = message.toLowerCase();
     bool has(List<String> words) => words.any(m.contains);
 
@@ -58,23 +73,27 @@ class EngineError {
     return EngineError(kind, message);
   }
 
-  String get title => switch (kind) {
-    EngineErrorKind.unsupported => 'This site isn\'t supported',
-    EngineErrorKind.loginRequired => 'Login needed',
-    EngineErrorKind.noInternet => 'No internet connection',
-    EngineErrorKind.unavailable => 'Link expired or removed',
-    EngineErrorKind.unknown => 'Couldn\'t load this link',
-  };
+  String get title => custom != null
+      ? "Couldn't load this link"
+      : switch (kind) {
+          EngineErrorKind.unsupported => 'This site isn\'t supported',
+          EngineErrorKind.loginRequired => 'Login needed',
+          EngineErrorKind.noInternet => 'No internet connection',
+          EngineErrorKind.unavailable => 'Link expired or removed',
+          EngineErrorKind.unknown => 'Couldn\'t load this link',
+        };
 
-  String get message => switch (kind) {
-    EngineErrorKind.unsupported => 'Kheench can\'t read videos from this link. Check it opens a video or post.',
-    EngineErrorKind.loginRequired => 'Only visible when logged in. Log in under Tools → Accounts, then try again.',
-    EngineErrorKind.noInternet => 'Check your connection and try again.',
-    EngineErrorKind.unavailable =>
-      'The post may be private, deleted, or the link has expired.',
-    EngineErrorKind.unknown => 'The site may have changed. Updating the download engine often fixes this.',
-  };
+  String get message =>
+      custom ??
+      switch (kind) {
+        EngineErrorKind.unsupported => 'Kheench can\'t read videos from this link. Check it opens a video or post.',
+        EngineErrorKind.loginRequired => 'Only visible when logged in. Log in under Tools → Accounts, then try again.',
+        EngineErrorKind.noInternet => 'Check your connection and try again.',
+        EngineErrorKind.unavailable =>
+          'The post may be private, deleted, or the link has expired.',
+        EngineErrorKind.unknown => 'The site may have changed. Updating the download engine often fixes this.',
+      };
 
   /// Whether "Update engine" is a sensible next step.
-  bool get suggestsUpdate => kind == EngineErrorKind.unknown;
+  bool get suggestsUpdate => custom == null && kind == EngineErrorKind.unknown;
 }
