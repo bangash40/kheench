@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../engine/auto_update.dart';
+import 'share_intake.dart';
 import '../features/downloads/downloads_controller.dart';
 import 'motion.dart';
 import 'theme.dart';
@@ -25,6 +26,10 @@ class AppShell extends ConsumerWidget {
     ref.watch(downloadsControllerProvider);
     // Weekly engine update check (Wi-Fi only, never mid-download).
     ref.watch(engineAutoUpdateProvider);
+    // A link shared from another app opens on Home.
+    ref.listen(sharedLinkProvider, (_, link) {
+      if (link != null && shell.currentIndex != 0) shell.goBranch(0);
+    });
     final active = ref.watch(activeCountProvider);
 
     return Scaffold(

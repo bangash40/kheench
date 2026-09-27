@@ -7,12 +7,17 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
     private var files: FileChannel? = null
     private var status: StatusChannel? = null
     private var accounts: AccountsChannel? = null
     private var split: SplitChannel? = null
+    private var shareChannel: MethodChannel? = null
+
+    /** Text shared into the app before Flutter was ready to take it. */
+    private var pendingShare: String? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -24,6 +29,34 @@ class MainActivity : FlutterActivity() {
         status = StatusChannel(this).also { it.register(messenger) }
         accounts = AccountsChannel(this).also { it.register(messenger) }
         split = SplitChannel(this).also { it.register(messenger) }
+
+        pendingShare = takeShared(intent)
+        shareChannel = MethodChannel(messenger, "kheench/share").apply {
+            setMethodCallHandler { call, result ->
+                if (call.method == "takePending") {
+                    result.success(pendingShare)
+                    pendingShare = null
+                } else {
+                    result.notImplemented()
+                }
+            }
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        val text = takeShared(intent) ?: return
+        val channel = shareChannel
+        if (channel == null) pendingShare = text else channel.invokeMethod("shared", text)
+    }
+
+    /** Shared text from a share-sheet intent; consumed so it isn't re-shared on rotation. */
+    private fun takeShared(intent: Intent?): String? {
+        if (intent?.action != Intent.ACTION_SEND) return null
+        val text = intent.getStringExtra(Intent.EXTRA_TEXT)
+            ?: intent.getStringExtra(Intent.EXTRA_SUBJECT)
+        intent.action = null
+        return text?.takeIf { it.isNotBlank() }
     }
 
     @Deprecated("Needed for startIntentSenderForResult on older APIs")

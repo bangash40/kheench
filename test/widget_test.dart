@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:kheench/app/share_intake.dart';
 import 'package:kheench/data/database.dart';
 import 'package:kheench/main.dart';
 
@@ -54,6 +55,34 @@ void main() {
     await tester.tap(find.text('Show qualities'));
     await tester.pumpAndSettle();
     expect(find.text('Enter a link starting with https://'), findsOneWidget);
+    await tearDownApp(tester);
+  });
+
+  testWidgets('a shared link opens on Home with just the link filled in', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tools'));
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(Scaffold).first),
+    );
+    container
+        .read(sharedLinkProvider.notifier)
+        .receive('Watch this! https://youtu.be/aqz-KE-bpKQ?si=abc');
+    // The lookup starts right away; its loading animation never settles.
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+
+    expect(find.text('Paste a link to start'), findsOneWidget);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, 'https://youtu.be/aqz-KE-bpKQ?si=abc');
+    expect(container.read(sharedLinkProvider), isNull);
     await tearDownApp(tester);
   });
 }

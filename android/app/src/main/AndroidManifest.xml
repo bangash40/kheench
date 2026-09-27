@@ -39,6 +39,12 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Appears in the share sheet for links shared from other apps. -->
+            <intent-filter android:label="Download with Kheench">
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
         <!-- Platform login pages (Instagram, Facebook, X, TikTok). -->
         <activity

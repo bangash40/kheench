@@ -9,6 +9,7 @@ import '../../engine/download_choice.dart';
 import '../../engine/engine.dart';
 import '../downloads/downloads_controller.dart';
 import '../../widgets/kheench_mark.dart';
+import '../../app/share_intake.dart';
 import '../settings/settings_providers.dart';
 import 'default_choice.dart';
 import 'link_lookup.dart';
@@ -45,6 +46,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'X',
     'Snapchat',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Links shared from other apps: fill them in and start reading.
+    ref.listenManual(sharedLinkProvider, (_, text) {
+      if (text != null) _useShared(text);
+    }, fireImmediately: true);
+  }
+
+  void _useShared(String text) {
+    // Defer so it never runs in the middle of a build.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ref.read(sharedLinkProvider.notifier).clear();
+      final url = extractUrl(text);
+      if (url == null) {
+        _snack('No link found in what was shared');
+        return;
+      }
+      setState(() {
+        _controller.text = url;
+        _error = null;
+      });
+      ref.read(linkLookupProvider.notifier).fetch(url);
+    });
+  }
 
   @override
   void dispose() {

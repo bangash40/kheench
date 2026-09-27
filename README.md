@@ -26,10 +26,10 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Log in to Instagram, Facebook, X and TikTok on their own login pages; downloads then use your account (log out any time) | Done |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |
 | Status splitter: pick a video (phone or downloads), part length 15/30/60 s or custom, trim, timeline, save to `Movies/Kheench/Split/<name>`, share all to WhatsApp in order | Done |
-| Splitter: shrink parts that are over WhatsApp's size limit | Planned |
 | TikTok videos with and without watermark (read through a hidden WebView, since TikTok blocks the engine's direct requests) | Done |
 | Faster link reading and download start (keep the engine loaded, reuse the lookup) | Planned |
-| Share links into Kheench from other apps, clipboard link detection | Planned |
+| Share links into Kheench from other apps (opens on Home and starts reading) | Done |
+| Clipboard link detection banner | Planned |
 
 ## Tech stack
 
