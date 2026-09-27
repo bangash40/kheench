@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/theme.dart';
 import '../../data/database.dart';
 import '../../engine/files.dart';
+import '../../engine/media_info.dart';
 import 'downloads_controller.dart';
 
 void _snack(BuildContext context, String message, {SnackBarAction? action}) {
@@ -12,6 +13,17 @@ void _snack(BuildContext context, String message, {SnackBarAction? action}) {
     ..showSnackBar(
       SnackBar(content: Text(message), action: action, persist: false),
     );
+}
+
+/// The line under a download's title: just the size, or with
+/// [details] "YouTube · 1080p60 MP4 · 84.2 MB". Null when there's nothing.
+String? downloadSubtitle(Download d, {required bool details}) {
+  final size = d.sizeBytes == null ? null : formatBytes(d.sizeBytes!);
+  final parts = [
+    if (details) ...[d.site, d.quality],
+    ?size,
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }
 
 /// Folder part of a saved path, e.g. `Movies/Kheench`.

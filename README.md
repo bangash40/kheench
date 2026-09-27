@@ -17,11 +17,11 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Bundled download engine (yt-dlp + FFmpeg) with version shown and in-app update | Done |
 | Paste a link → preview → pick from every video/audio quality, with clear error messages | Done |
 | Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
-| Downloads screen: live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
+| Downloads screen: Active / Saved / Failed tabs (tap or swipe), live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
 | Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
 | WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback) | Done |
 | Save statuses: long-press to multi-select, Select all, Save from the grid or the preview; saved ones are marked | Done |
-| Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, engine update | Done |
+| Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, copied-link offers, site and quality under titles, engine update | Done |
 | Default quality downloads straight away (picker still one tap away), status auto-save, weekly engine update on Wi-Fi when idle | Done |
 | Log in to Instagram, Facebook, X and TikTok on their own login pages; downloads then use your account (log out any time) | Done |
 | Stories and highlights, Instagram carousel photos, full-size profile pictures | Planned |

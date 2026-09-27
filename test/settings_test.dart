@@ -17,6 +17,7 @@ void main() {
       audioFormat: AudioFormat.mp3,
       parallel: 3,
       autoSaveStatuses: true,
+      showDetails: true,
     );
     final back = AppSettings.fromStorage(s.toStorage());
     expect(back.themeMode, ThemeMode.dark);
@@ -24,6 +25,9 @@ void main() {
     expect(back.audioFormat, AudioFormat.mp3);
     expect(back.parallel, 3);
     expect(back.autoSaveStatuses, isTrue);
+    expect(back.showDetails, isTrue);
+    // Off by default: only the file size shows under titles.
+    expect(const AppSettings().showDetails, isFalse);
   });
 
   test('bad or missing values fall back to defaults', () {

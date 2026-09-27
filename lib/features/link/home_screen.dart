@@ -8,6 +8,7 @@ import '../../app/theme.dart';
 import '../../engine/download_choice.dart';
 import '../../engine/engine.dart';
 import '../downloads/downloads_controller.dart';
+import '../downloads/downloads_tab.dart';
 import '../../widgets/kheench_mark.dart';
 import '../../app/share_intake.dart';
 import '../settings/settings_providers.dart';
@@ -31,15 +32,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _controller = TextEditingController();
   String? _error;
   bool _updatingEngine = false;
-
-  static const _sites = [
-    'YouTube',
-    'Instagram',
-    'TikTok',
-    'Facebook',
-    'X',
-    'Snapchat',
-  ];
 
   late final AppLifecycleListener _lifecycle;
 
@@ -148,6 +140,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           choice: choice,
         );
     if (!mounted) return;
+    // Ready for the next link.
+    _clear();
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
@@ -158,7 +152,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           action: SnackBarAction(
             label: 'View',
             textColor: KColors.saffron,
-            onPressed: () => context.go('/downloads'),
+            onPressed: () {
+              ref.read(downloadsTabProvider.notifier).show(DownloadsTab.active);
+              context.go('/downloads');
+            },
           ),
         ),
       );
@@ -260,21 +257,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onClear: _clear,
             updatingEngine: _updatingEngine,
           ),
-          const SizedBox(height: 20),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final s in _sites) _SiteChip(label: s),
-              _SiteChip(label: '+1,800 sites', highlighted: true),
-            ],
-          ),
           const SizedBox(height: 28),
           Row(
             children: [
               Expanded(child: Text('Recent', style: text.headlineSmall)),
               TextButton(
-                onPressed: () => context.go('/downloads'),
+                onPressed: () {
+                  ref
+                      .read(downloadsTabProvider.notifier)
+                      .show(DownloadsTab.saved);
+                  context.go('/downloads');
+                },
                 child: const Text('See all'),
               ),
             ],
@@ -432,39 +425,11 @@ class _HeroCard extends StatelessWidget {
                         color: KColors.ink,
                       ),
                     )
-                  : const Icon(Icons.search_rounded),
-              label: Text(loading ? 'Reading link…' : 'Show qualities'),
+                  : const Icon(Icons.download_rounded),
+              label: Text(loading ? 'Downloading…' : 'Download'),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SiteChip extends StatelessWidget {
-  const _SiteChip({required this.label, this.highlighted = false});
-
-  final String label;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) {
-    final k = context.k;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: highlighted ? k.tealTint : k.surface,
-        borderRadius: BorderRadius.circular(40),
-        border: Border.all(color: highlighted ? k.tealTint : k.border),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: highlighted ? FontWeight.w700 : FontWeight.w500,
-          color: highlighted ? k.teal : k.text,
-        ),
       ),
     );
   }

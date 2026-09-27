@@ -11,6 +11,7 @@ import '../../widgets/media_thumb.dart';
 import '../downloads/download_actions.dart';
 import '../downloads/downloads_controller.dart';
 import '../downloads/downloads_screen.dart';
+import '../settings/settings_providers.dart';
 
 /// The three newest downloads, shown on Home.
 class RecentList extends ConsumerWidget {
@@ -64,10 +65,14 @@ class _RecentCard extends ConsumerWidget {
       live,
     );
 
+    final showDetails = ref.watch(
+      settingsProvider.select((s) => s.showDetails),
+    );
     final detail = done
+        // The site has its own line here, so leave it out of this one.
         ? [
-            d.quality,
-            if (d.sizeBytes != null) formatBytes(d.sizeBytes!),
+            if (showDetails) d.quality,
+            ?downloadSubtitle(d, details: false),
           ].join(' · ')
         : failed
         ? 'Failed · tap to see why'
@@ -102,14 +107,15 @@ class _RecentCard extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    Text(
-                      d.site,
-                      style: TextStyle(
-                        color: k.teal,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                    if (showDetails)
+                      Text(
+                        d.site,
+                        style: TextStyle(
+                          color: k.teal,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
                     Row(
                       children: [
                         Expanded(

@@ -52,7 +52,7 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextField), 'not a link');
-    await tester.tap(find.text('Show qualities'));
+    await tester.tap(find.text('Download'));
     await tester.pumpAndSettle();
     expect(find.text('Enter a link starting with https://'), findsOneWidget);
     await tearDownApp(tester);
@@ -83,6 +83,29 @@ void main() {
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller!.text, 'https://youtu.be/aqz-KE-bpKQ?si=abc');
     expect(container.read(sharedLinkProvider), isNull);
+    await tearDownApp(tester);
+  });
+
+  testWidgets('See all opens the Saved tab, and tabs change by swiping', (
+    tester,
+  ) async {
+    await tester.pumpWidget(app());
+    await tester.pump(const Duration(milliseconds: 1600));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('See all'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nothing saved yet'), findsOneWidget);
+
+    await tester.fling(find.byType(PageView), const Offset(-400, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('No failed downloads'), findsOneWidget);
+
+    await tester.fling(find.byType(PageView), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+    await tester.fling(find.byType(PageView), const Offset(400, 0), 1000);
+    await tester.pumpAndSettle();
+    expect(find.text('No active downloads'), findsOneWidget);
     await tearDownApp(tester);
   });
 }

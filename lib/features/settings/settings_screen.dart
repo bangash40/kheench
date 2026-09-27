@@ -91,6 +91,24 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile(
+              value: s.showDetails,
+              onChanged: (v) =>
+                  notifier.update((s) => s.copyWith(showDetails: v)),
+              activeThumbColor: KColors.saffron,
+              secondary: Icon(Icons.subtitles_outlined, color: context.k.teal),
+              title: Text(
+                'Show site and quality',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              subtitle: Text(
+                'Under titles in Downloads and Recent. Off: only the file size',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ),
           const _Section('WhatsApp status'),
           Card(
             child: SwitchListTile(

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/database.dart';
 import '../../engine/downloader.dart';
 
-/// What happens when you tap "Show qualities".
+/// What happens when you tap "Download" on Home.
 enum DefaultQuality {
   ask('Ask every time'),
   best('Best available'),
@@ -33,6 +33,7 @@ class AppSettings {
     this.parallel = 2,
     this.autoSaveStatuses = false,
     this.clipboardDetection = true,
+    this.showDetails = false,
   });
 
   final ThemeMode themeMode;
@@ -46,6 +47,9 @@ class AppSettings {
   /// Offer links found on the clipboard when the app opens.
   final bool clipboardDetection;
 
+  /// Show site, quality and format under titles; off shows only the size.
+  final bool showDetails;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     DefaultQuality? defaultQuality,
@@ -53,6 +57,7 @@ class AppSettings {
     int? parallel,
     bool? autoSaveStatuses,
     bool? clipboardDetection,
+    bool? showDetails,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     defaultQuality: defaultQuality ?? this.defaultQuality,
@@ -60,6 +65,7 @@ class AppSettings {
     parallel: parallel ?? this.parallel,
     autoSaveStatuses: autoSaveStatuses ?? this.autoSaveStatuses,
     clipboardDetection: clipboardDetection ?? this.clipboardDetection,
+    showDetails: showDetails ?? this.showDetails,
   );
 
   Map<String, String> toStorage() => {
@@ -69,6 +75,7 @@ class AppSettings {
     'parallel': '$parallel',
     'autoSaveStatuses': '$autoSaveStatuses',
     'clipboardDetection': '$clipboardDetection',
+    'showDetails': '$showDetails',
   };
 
   factory AppSettings.fromStorage(Map<String, String> m) {
@@ -85,6 +92,7 @@ class AppSettings {
       parallel: (int.tryParse(m['parallel'] ?? '') ?? 2).clamp(1, 3),
       autoSaveStatuses: m['autoSaveStatuses'] == 'true',
       clipboardDetection: m['clipboardDetection'] != 'false',
+      showDetails: m['showDetails'] == 'true',
     );
   }
 }
