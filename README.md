@@ -29,7 +29,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | TikTok videos with and without watermark (read through a hidden WebView, since TikTok blocks the engine's direct requests) | Done |
 | Faster link reading and download start (keep the engine loaded, reuse the lookup) | Planned |
 | Share links into Kheench from other apps (opens on Home and starts reading) | Done |
-| Clipboard link detection banner | Planned |
+| "Link found on clipboard" banner (reads the clipboard only when Android says it holds a new link; can be turned off) | Done |
 
 ## Tech stack
 

@@ -12,19 +12,13 @@ import '../../widgets/kheench_mark.dart';
 import '../../app/share_intake.dart';
 import '../settings/settings_providers.dart';
 import 'default_choice.dart';
+import 'clipboard_banner.dart';
+import 'clipboard_offer.dart';
 import 'link_lookup.dart';
+import 'link_text.dart';
 import 'preview_card.dart';
 import 'quality_sheet.dart';
 import 'recent_list.dart';
-
-/// First http(s) link in [text]; apps often share "Look at this https://…".
-String? extractUrl(String text) {
-  final match = RegExp(r'https?://[^\s<>"]+').firstMatch(text);
-  if (match == null) return null;
-  final url = match.group(0)!.replaceAll(RegExp(r'[.,;:!?)\]]+$'), '');
-  final uri = Uri.tryParse(url);
-  return uri != null && uri.host.contains('.') ? url : null;
-}
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -47,9 +41,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     'Snapchat',
   ];
 
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
+    // Offer a copied link when Home appears and whenever the app comes back.
+    _lifecycle = AppLifecycleListener(onResume: _checkClipboard);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkClipboard());
     // Links shared from other apps: fill them in and start reading.
     ref.listenManual(sharedLinkProvider, (_, text) {
       if (text != null) _useShared(text);
@@ -74,8 +73,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     });
   }
 
+  Future<void> _checkClipboard() async {
+    // Android only allows reading the clipboard once the window has focus.
+    await Future<void>.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+    await ref
+        .read(clipboardOfferProvider.notifier)
+        .check(currentText: _controller.text);
+  }
+
+  void _openClipboardLink(String url) {
+    ref.read(clipboardOfferProvider.notifier).done();
+    setState(() {
+      _controller.text = url;
+      _error = null;
+    });
+    ref.read(linkLookupProvider.notifier).fetch(url);
+  }
+
   @override
   void dispose() {
+    _lifecycle.dispose();
     _controller.dispose();
     super.dispose();
   }
@@ -222,6 +240,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onChanged: () {
               if (_error != null) setState(() => _error = null);
             },
+          ),
+          ClipboardBanner(
+            url: ref.watch(clipboardOfferProvider),
+            onOpen: () {
+              final url = ref.read(clipboardOfferProvider);
+              if (url != null) _openClipboardLink(url);
+            },
+            onDismiss: () => ref.read(clipboardOfferProvider.notifier).done(),
           ),
           PreviewArea(
             state: lookup,

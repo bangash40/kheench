@@ -70,6 +70,27 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
           ),
+          const SizedBox(height: 12),
+          Card(
+            child: SwitchListTile(
+              value: s.clipboardDetection,
+              onChanged: (v) =>
+                  notifier.update((s) => s.copyWith(clipboardDetection: v)),
+              activeThumbColor: KColors.saffron,
+              secondary: Icon(
+                Icons.content_paste_search_rounded,
+                color: context.k.teal,
+              ),
+              title: Text(
+                'Offer copied links',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              subtitle: Text(
+                'Shows "Link found on clipboard" when you open Kheench',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          ),
           const _Section('WhatsApp status'),
           Card(
             child: SwitchListTile(

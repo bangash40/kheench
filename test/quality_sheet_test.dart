@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kheench/app/theme.dart';
 import 'package:kheench/engine/media_info.dart';
-import 'package:kheench/features/link/home_screen.dart';
+import 'package:kheench/features/link/link_text.dart';
 import 'package:kheench/features/link/quality_sheet.dart';
 
 void main() {

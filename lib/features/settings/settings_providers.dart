@@ -32,6 +32,7 @@ class AppSettings {
     this.audioFormat = AudioFormat.m4a,
     this.parallel = 2,
     this.autoSaveStatuses = false,
+    this.clipboardDetection = true,
   });
 
   final ThemeMode themeMode;
@@ -42,18 +43,23 @@ class AppSettings {
   final int parallel;
   final bool autoSaveStatuses;
 
+  /// Offer links found on the clipboard when the app opens.
+  final bool clipboardDetection;
+
   AppSettings copyWith({
     ThemeMode? themeMode,
     DefaultQuality? defaultQuality,
     AudioFormat? audioFormat,
     int? parallel,
     bool? autoSaveStatuses,
+    bool? clipboardDetection,
   }) => AppSettings(
     themeMode: themeMode ?? this.themeMode,
     defaultQuality: defaultQuality ?? this.defaultQuality,
     audioFormat: audioFormat ?? this.audioFormat,
     parallel: parallel ?? this.parallel,
     autoSaveStatuses: autoSaveStatuses ?? this.autoSaveStatuses,
+    clipboardDetection: clipboardDetection ?? this.clipboardDetection,
   );
 
   Map<String, String> toStorage() => {
@@ -62,6 +68,7 @@ class AppSettings {
     'audioFormat': audioFormat.name,
     'parallel': '$parallel',
     'autoSaveStatuses': '$autoSaveStatuses',
+    'clipboardDetection': '$clipboardDetection',
   };
 
   factory AppSettings.fromStorage(Map<String, String> m) {
@@ -77,6 +84,7 @@ class AppSettings {
       audioFormat: pick(AudioFormat.values, m['audioFormat'], AudioFormat.m4a),
       parallel: (int.tryParse(m['parallel'] ?? '') ?? 2).clamp(1, 3),
       autoSaveStatuses: m['autoSaveStatuses'] == 'true',
+      clipboardDetection: m['clipboardDetection'] != 'false',
     );
   }
 }

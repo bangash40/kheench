@@ -1,9 +1,12 @@
 package com.bangash.kheench
 
 import android.Manifest
+import android.content.ClipDescription
+import android.content.ClipboardManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.view.textclassifier.TextClassifier
 import androidx.core.content.ContextCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -33,11 +36,13 @@ class MainActivity : FlutterActivity() {
         pendingShare = takeShared(intent)
         shareChannel = MethodChannel(messenger, "kheench/share").apply {
             setMethodCallHandler { call, result ->
-                if (call.method == "takePending") {
-                    result.success(pendingShare)
-                    pendingShare = null
-                } else {
-                    result.notImplemented()
+                when (call.method) {
+                    "takePending" -> {
+                        result.success(pendingShare)
+                        pendingShare = null
+                    }
+                    "clipboardHint" -> result.success(clipboardHint())
+                    else -> result.notImplemented()
                 }
             }
         }
@@ -48,6 +53,26 @@ class MainActivity : FlutterActivity() {
         val text = takeShared(intent) ?: return
         val channel = shareChannel
         if (channel == null) pendingShare = text else channel.invokeMethod("shared", text)
+    }
+
+    /**
+     * Whether the clipboard may hold a link, decided *without reading it*
+     * (reading shows a "pasted from your clipboard" toast on Android 12+).
+     * `stamp` changes when the clipboard does, so Dart reads each clip once.
+     */
+    private fun clipboardHint(): Map<String, Any?> {
+        val cm = getSystemService(ClipboardManager::class.java)
+        val d = cm?.primaryClipDescription ?: return mapOf("mayHaveLink" to false)
+        val text = d.hasMimeType("text/*")
+        val mayHaveLink = when {
+            !text -> false
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                d.classificationStatus == ClipDescription.CLASSIFICATION_COMPLETE ->
+                d.getConfidenceScore(TextClassifier.TYPE_URL) > 0.5f
+            else -> true
+        }
+        val stamp = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) d.timestamp else null
+        return mapOf("mayHaveLink" to mayHaveLink, "stamp" to stamp)
     }
 
     /** Shared text from a share-sheet intent; consumed so it isn't re-shared on rotation. */
