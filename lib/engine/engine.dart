@@ -30,6 +30,9 @@ class Engine {
         : EngineUpdateResult.alreadyUpToDate;
   }
 
+  /// The installed app's version name, e.g. `1.0.0`.
+  Future<String> appVersion() => _call<String>('appVersion');
+
   /// True on Wi-Fi or another connection that isn't billed by data.
   Future<bool> isUnmetered() async {
     try {
@@ -57,4 +60,9 @@ final engineProvider = Provider<Engine>((_) => Engine());
 /// Installed yt-dlp version; also warms up the engine on first read.
 final engineVersionProvider = FutureProvider<String>(
   (ref) => ref.watch(engineProvider).prepare(),
+);
+
+/// Kheench's own version, shown at the bottom of Settings.
+final appVersionProvider = FutureProvider<String>(
+  (ref) => ref.watch(engineProvider).appVersion(),
 );

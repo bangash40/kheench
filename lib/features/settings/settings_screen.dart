@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/theme.dart';
 import '../../engine/engine.dart';
+import '../../widgets/kheench_mark.dart';
 import 'settings_providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
@@ -143,6 +144,8 @@ class SettingsScreen extends ConsumerWidget {
                   ?.copyWith(fontSize: 14, height: 1.6),
             ),
           ),
+          const SizedBox(height: 32),
+          const _AppVersion(),
         ],
       ),
     );
@@ -197,6 +200,27 @@ class SettingsScreen extends ConsumerWidget {
           .read(settingsProvider.notifier)
           .update((s) => s.copyWith(defaultQuality: picked));
     }
+  }
+}
+
+/// "Kheench 1.0.0" at the very end of Settings.
+class _AppVersion extends ConsumerWidget {
+  const _AppVersion();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final version = ref.watch(appVersionProvider).value;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const KheenchMark(size: 20),
+        const SizedBox(width: 8),
+        Text(
+          version == null ? 'Kheench' : 'Kheench $version',
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 13),
+        ),
+      ],
+    );
   }
 }
 

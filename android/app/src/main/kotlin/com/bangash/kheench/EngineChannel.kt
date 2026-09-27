@@ -59,6 +59,9 @@ class EngineChannel(
             "cancel" -> run(result) { stop(call.argument<String>("taskId")!!, pause = false) }
             "taskStates" -> run(result) { taskStates() }
             "isUnmetered" -> result.success(isUnmetered())
+            "appVersion" -> result.success(
+                context.packageManager.getPackageInfo(context.packageName, 0).versionName,
+            )
             "setParallel" -> {
                 DownloadWorker.setParallelLimit(context, call.argument<Int>("value") ?: 2)
                 result.success(true)
