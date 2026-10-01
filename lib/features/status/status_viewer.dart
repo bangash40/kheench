@@ -11,7 +11,6 @@ import '../../app/theme.dart';
 import '../../engine/media_info.dart';
 import '../../engine/status_source.dart';
 import 'status_saver.dart';
-import 'status_screen.dart' show SavedBadge;
 
 /// Opens [items] full screen at [index]; swipe to move between them.
 Future<void> showStatusViewer(
@@ -77,13 +76,14 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
     } catch (_) {}
     if (!mounted) return;
     setState(() => _saving = false);
-    if (!ok) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text("Couldn't save this status")),
-        );
-    }
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Saved' : "Couldn't save this status"),
+          duration: const Duration(seconds: 2),
+        ),
+      );
   }
 
   /// Share, or open WhatsApp's share screen so "My status" is one tap away.
@@ -197,11 +197,6 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
                                 ],
                               ),
                             ),
-                            if (saved)
-                              const Padding(
-                                padding: EdgeInsets.only(right: 12),
-                                child: SavedBadge(),
-                              ),
                           ],
                         ),
                       ),
@@ -251,18 +246,16 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _ActionButton(
-                                icon: saved
-                                    ? Icons.check_rounded
-                                    : Icons.download_rounded,
-                                label: saved
-                                    ? 'Downloaded'
-                                    : _saving
+                                icon: Icons.download_rounded,
+                                // The saved record can outlive the file (deleted
+                                // from the gallery), so saving again stays possible.
+                                label: _saving
                                     ? 'Saving…'
+                                    : saved
+                                    ? 'Download again'
                                     : 'Download',
                                 filled: true,
-                                onPressed: saved || _saving
-                                    ? null
-                                    : () => _save(item),
+                                onPressed: _saving ? null : () => _save(item),
                               ),
                             ),
                           ],
