@@ -32,6 +32,17 @@ class AppShell extends ConsumerWidget {
     });
     final active = ref.watch(activeCountProvider);
 
+    // Back from any other tab goes to Home first; only Home leaves the app.
+    return PopScope(
+      canPop: shell.currentIndex == 0,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) shell.goBranch(0);
+      },
+      child: _scaffold(context, active),
+    );
+  }
+
+  Widget _scaffold(BuildContext context, int active) {
     return Scaffold(
       body: shell,
       bottomNavigationBar: DecoratedBox(

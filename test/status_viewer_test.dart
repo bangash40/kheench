@@ -54,7 +54,9 @@ void main() {
     expect(close.dy, lessThan(120));
     expect(find.text('2 of 3'), findsOneWidget);
     expect(find.text('2h ago'), findsOneWidget);
-    expect(find.text('Save'), findsOneWidget);
+    for (final label in ['Share', 'Set as status', 'Download']) {
+      expect(find.text(label), findsOneWidget);
+    }
 
     await tester.pumpWidget(const SizedBox());
     await tester.pump(Duration.zero);
