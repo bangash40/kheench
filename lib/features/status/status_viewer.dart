@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -52,6 +53,21 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
   late final _pages = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
   bool _saving = false;
+  bool _chromeVisible = true;
+  Timer? _hideTimer;
+
+  /// The top bar stays out of the way while a video plays and returns when it
+  /// pauses, ends or the user moves to another status.
+  void _videoPlaying(bool playing) {
+    _hideTimer?.cancel();
+    if (!playing) {
+      if (!_chromeVisible) setState(() => _chromeVisible = true);
+      return;
+    }
+    _hideTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _chromeVisible = false);
+    });
+  }
 
   Future<void> _save(StatusItem item) async {
     setState(() => _saving = true);
@@ -72,6 +88,7 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     _pages.dispose();
     super.dispose();
   }
@@ -93,11 +110,22 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
             PageView.builder(
               controller: _pages,
               itemCount: widget.items.length,
-              onPageChanged: (i) => setState(() => _index = i),
+              onPageChanged: (i) {
+                _hideTimer?.cancel();
+                setState(() {
+                  _index = i;
+                  _chromeVisible = true;
+                });
+              },
               itemBuilder: (_, i) {
                 final it = widget.items[i];
                 return it.type == StatusType.video
-                    ? _VideoPage(item: it, active: i == _index)
+                    ? _VideoPage(
+                        item: it,
+                        active: i == _index,
+                        controlsVisible: _chromeVisible,
+                        onPlaying: _videoPlaying,
+                      )
                     : _PhotoPage(item: it);
               },
             ),
@@ -105,75 +133,82 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
               top: 0,
               left: 0,
               right: 0,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0x99000000), Color(0x00000000)],
-                  ),
-                ),
-                child: SafeArea(
-                  bottom: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: 'Close',
-                          icon: const Icon(
-                            Icons.close_rounded,
-                            color: KColors.white,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Expanded(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${_index + 1} of ${widget.items.length}',
-                                style: const TextStyle(
-                                  color: KColors.white,
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 15,
-                                ),
-                              ),
-                              Text(
-                                timeAgo(item.modified),
-                                style: const TextStyle(
-                                  color: Color(0xFFB9C6C8),
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (saved)
-                          const Padding(
-                            padding: EdgeInsets.only(right: 12),
-                            child: SavedBadge(),
-                          )
-                        else
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: FilledButton.icon(
-                              onPressed: _saving ? null : () => _save(item),
-                              style: FilledButton.styleFrom(
-                                minimumSize: const Size(0, 40),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                              ),
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: AnimatedOpacity(
+                  opacity: _chromeVisible ? 1 : 0,
+                  duration: context.ms(200),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x99000000), Color(0x00000000)],
+                      ),
+                    ),
+                    child: SafeArea(
+                      bottom: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 4, 4, 16),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: 'Close',
                               icon: const Icon(
-                                Icons.download_rounded,
-                                size: 20,
+                                Icons.close_rounded,
+                                color: KColors.white,
                               ),
-                              label: Text(_saving ? 'Saving' : 'Save'),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                          ),
-                      ],
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${_index + 1} of ${widget.items.length}',
+                                    style: const TextStyle(
+                                      color: KColors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 15,
+                                    ),
+                                  ),
+                                  Text(
+                                    timeAgo(item.modified),
+                                    style: const TextStyle(
+                                      color: Color(0xFFB9C6C8),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (saved)
+                              const Padding(
+                                padding: EdgeInsets.only(right: 12),
+                                child: SavedBadge(),
+                              )
+                            else
+                              Padding(
+                                padding: const EdgeInsets.only(right: 8),
+                                child: FilledButton.icon(
+                                  onPressed: _saving ? null : () => _save(item),
+                                  style: FilledButton.styleFrom(
+                                    minimumSize: const Size(0, 40),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                    ),
+                                  ),
+                                  icon: const Icon(
+                                    Icons.download_rounded,
+                                    size: 20,
+                                  ),
+                                  label: Text(_saving ? 'Saving' : 'Save'),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -232,9 +267,20 @@ class _PhotoPage extends ConsumerWidget {
 }
 
 class _VideoPage extends StatefulWidget {
-  const _VideoPage({required this.item, required this.active});
+  const _VideoPage({
+    required this.item,
+    required this.active,
+    required this.controlsVisible,
+    required this.onPlaying,
+  });
 
   final StatusItem item;
+
+  /// Whether the progress bar shows; it hides together with the top bar.
+  final bool controlsVisible;
+
+  /// Called whenever the active video starts or stops playing.
+  final ValueChanged<bool> onPlaying;
 
   /// Only the page on screen plays.
   final bool active;
@@ -260,12 +306,22 @@ class _VideoPageState extends State<_VideoPage> {
     if (!widget.active) _video?.pause();
   }
 
+  bool _wasPlaying = false;
+
+  void _onValue() {
+    final playing = _video?.value.isPlaying ?? false;
+    if (playing == _wasPlaying) return;
+    _wasPlaying = playing;
+    if (widget.active) widget.onPlaying(playing);
+  }
+
   Future<void> _load() async {
     final uri = Uri.parse(widget.item.uri);
     final c = uri.scheme == 'file'
         ? VideoPlayerController.file(File(uri.toFilePath()))
         : VideoPlayerController.contentUri(uri);
     _video = c;
+    c.addListener(_onValue);
     try {
       await c.initialize();
       if (!mounted) return;
@@ -341,33 +397,46 @@ class _VideoPageState extends State<_VideoPage> {
             left: 16,
             right: 16,
             bottom: 24 + MediaQuery.paddingOf(context).bottom,
-            child: ValueListenableBuilder<VideoPlayerValue>(
-              valueListenable: c,
-              builder: (context, v, _) => Row(
-                children: [
-                  Text(
-                    formatDuration(v.position),
-                    style: const TextStyle(color: KColors.white, fontSize: 13),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: VideoProgressIndicator(
-                      c,
-                      allowScrubbing: true,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      colors: const VideoProgressColors(
-                        playedColor: KColors.saffron,
-                        bufferedColor: Color(0x55FFFFFF),
-                        backgroundColor: Color(0x33FFFFFF),
+            child: IgnorePointer(
+              ignoring: !widget.controlsVisible,
+              child: AnimatedOpacity(
+                opacity: widget.controlsVisible ? 1 : 0,
+                duration: context.ms(200),
+                child: ValueListenableBuilder<VideoPlayerValue>(
+                  valueListenable: c,
+                  builder: (context, v, _) => Row(
+                    children: [
+                      Text(
+                        formatDuration(v.position),
+                        style: const TextStyle(
+                          color: KColors.white,
+                          fontSize: 13,
+                        ),
                       ),
-                    ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: VideoProgressIndicator(
+                          c,
+                          allowScrubbing: true,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          colors: const VideoProgressColors(
+                            playedColor: KColors.saffron,
+                            bufferedColor: Color(0x55FFFFFF),
+                            backgroundColor: Color(0x33FFFFFF),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        formatDuration(v.duration),
+                        style: const TextStyle(
+                          color: KColors.white,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  Text(
-                    formatDuration(v.duration),
-                    style: const TextStyle(color: KColors.white, fontSize: 13),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
