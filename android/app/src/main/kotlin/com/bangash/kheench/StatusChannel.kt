@@ -2,6 +2,7 @@ package com.bangash.kheench
 
 import android.Manifest
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,6 +17,7 @@ import android.os.Looper
 import android.provider.DocumentsContract
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -54,6 +56,14 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
                 thumbnail(call.argument<String>("uri")!!, call.argument<String>("type")!!)
             }
             "localCopy" -> background(result) { localCopy(call.argument<String>("uri")!!) }
+            "share" -> background(result) {
+                share(
+                    call.argument<String>("uri")!!,
+                    call.argument<String>("type")!!,
+                    // Null means "any app"; otherwise straight into [app]'s WhatsApp.
+                    if (call.argument<Boolean>("toWhatsApp") == true) app else null,
+                )
+            }
             "save" -> background(result) {
                 save(call.argument<List<Map<String, Any?>>>("items").orEmpty())
             }
@@ -277,6 +287,39 @@ class StatusChannel(private val activity: Activity) : MethodChannel.MethodCallHa
             } ?: return null
         }
         return out.absolutePath
+    }
+
+    /**
+     * Sends a status on without saving it. With [whatsApp] set, opens that
+     * WhatsApp's share screen (where "My status" lives); otherwise the
+     * system chooser. Returns false when nothing could take it.
+     */
+    private fun share(raw: String, type: String, whatsApp: String?): Boolean {
+        val path = localCopy(raw) ?: return false
+        val shareable = FileProvider.getUriForFile(activity, "${activity.packageName}.files", File(path))
+        val send = Intent(Intent.ACTION_SEND).apply {
+            this.type = if (type == "video") "video/mp4" else "image/jpeg"
+            putExtra(Intent.EXTRA_STREAM, shareable)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        val packages = when (whatsApp) {
+            null -> emptyList()
+            "business" -> listOf("com.whatsapp.w4b", "com.whatsapp")
+            else -> listOf("com.whatsapp", "com.whatsapp.w4b")
+        }
+        for (pkg in packages) {
+            try {
+                activity.startActivity(Intent(send).setPackage(pkg))
+                return true
+            } catch (_: ActivityNotFoundException) {
+            }
+        }
+        return try {
+            activity.startActivity(Intent.createChooser(send, null))
+            true
+        } catch (_: ActivityNotFoundException) {
+            false
+        }
     }
 
     private fun scaledPhoto(uri: Uri): Bitmap? {

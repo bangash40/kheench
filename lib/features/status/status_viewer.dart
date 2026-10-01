@@ -86,6 +86,20 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
     }
   }
 
+  /// Share, or open WhatsApp's share screen so "My status" is one tap away.
+  Future<void> _send(StatusItem item, {required bool toWhatsApp}) async {
+    final ok = await ref
+        .read(statusSourceProvider)
+        .share(widget.app, item, toWhatsApp: toWhatsApp);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text("Couldn't share this status")),
+        );
+    }
+  }
+
   @override
   void dispose() {
     _hideTimer?.cancel();
@@ -187,25 +201,70 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
                               const Padding(
                                 padding: EdgeInsets.only(right: 12),
                                 child: SavedBadge(),
-                              )
-                            else
-                              Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: FilledButton.icon(
-                                  onPressed: _saving ? null : () => _save(item),
-                                  style: FilledButton.styleFrom(
-                                    minimumSize: const Size(0, 40),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                    ),
-                                  ),
-                                  icon: const Icon(
-                                    Icons.download_rounded,
-                                    size: 20,
-                                  ),
-                                  label: Text(_saving ? 'Saving' : 'Save'),
-                                ),
                               ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: IgnorePointer(
+                ignoring: !_chromeVisible,
+                child: AnimatedOpacity(
+                  opacity: _chromeVisible ? 1 : 0,
+                  duration: context.ms(200),
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.bottomCenter,
+                        end: Alignment.topCenter,
+                        colors: [Color(0xCC000000), Color(0x00000000)],
+                      ),
+                    ),
+                    child: SafeArea(
+                      top: false,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _ActionButton(
+                                icon: Icons.share_rounded,
+                                label: 'Share',
+                                onPressed: () => _send(item, toWhatsApp: false),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _ActionButton(
+                                icon: Icons.add_circle_outline_rounded,
+                                label: 'Set as status',
+                                onPressed: () => _send(item, toWhatsApp: true),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _ActionButton(
+                                icon: saved
+                                    ? Icons.check_rounded
+                                    : Icons.download_rounded,
+                                label: saved
+                                    ? 'Downloaded'
+                                    : _saving
+                                    ? 'Saving…'
+                                    : 'Download',
+                                filled: true,
+                                onPressed: saved || _saving
+                                    ? null
+                                    : () => _save(item),
+                              ),
+                            ),
                           ],
                         ),
                       ),
@@ -218,6 +277,60 @@ class _StatusViewerState extends ConsumerState<StatusViewer> {
         ),
       ),
     );
+  }
+}
+
+/// Icon over label; the main action is [filled], the rest outlined.
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.filled = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = ButtonStyle(
+      minimumSize: const WidgetStatePropertyAll(Size.fromHeight(58)),
+      padding: const WidgetStatePropertyAll(
+        EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      ),
+      shape: WidgetStatePropertyAll(
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+    final content = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 22),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+    return filled
+        ? FilledButton(onPressed: onPressed, style: style, child: content)
+        : OutlinedButton(
+            onPressed: onPressed,
+            style: style.copyWith(
+              foregroundColor: const WidgetStatePropertyAll(KColors.white),
+              side: const WidgetStatePropertyAll(
+                BorderSide(color: Color(0x61FFFFFF)),
+              ),
+              backgroundColor: const WidgetStatePropertyAll(Color(0x33000000)),
+            ),
+            child: content,
+          );
   }
 }
 
@@ -396,7 +509,8 @@ class _VideoPageState extends State<_VideoPage> {
           Positioned(
             left: 16,
             right: 16,
-            bottom: 24 + MediaQuery.paddingOf(context).bottom,
+            // Sits above the Share / Set as status / Download row.
+            bottom: 96 + MediaQuery.paddingOf(context).bottom,
             child: IgnorePointer(
               ignoring: !widget.controlsVisible,
               child: AnimatedOpacity(

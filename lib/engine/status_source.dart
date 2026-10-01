@@ -141,6 +141,26 @@ class StatusSource {
     ];
   }
 
+  /// Sends [item] to another app without saving it. [toWhatsApp] goes
+  /// straight to [app]'s WhatsApp share screen (pick "My status" there).
+  Future<bool> share(
+    StatusApp app,
+    StatusItem item, {
+    required bool toWhatsApp,
+  }) async {
+    try {
+      return await _channel.invokeMethod<bool>('share', {
+            'app': app.name,
+            'uri': item.uri,
+            'type': item.type.name,
+            'toWhatsApp': toWhatsApp,
+          }) ??
+          false;
+    } on PlatformException {
+      return false;
+    }
+  }
+
   /// A local file path for showing [uri] full screen.
   Future<String?> localCopy(String uri) =>
       _channel.invokeMethod<String>('localCopy', {'uri': uri});

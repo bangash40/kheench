@@ -19,7 +19,7 @@ Everything runs on the phone: no server, no accounts on a backend, no analytics,
 | Background downloads with notification progress and cancel, saved to `Movies/Kheench` and `Music/Kheench` | Done |
 | Downloads screen: Active / Saved / Failed tabs (tap or swipe), live progress, pause/resume, cancel, retry, history and a badge with the active count | Done |
 | Play, share, open folder and delete saved files; "Recent" list on Home; completion haptic and check animation | Done |
-| WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback; the top bar fades out while a video plays) | Done |
+| WhatsApp and WhatsApp Business statuses: one-time guided folder access, Videos/Photos grid with thumbnails and durations, full-screen preview (swipe, zoom, video playback; Share, Set as status and Download sit at the bottom, and the bars fade out while a video plays) | Done |
 | Save statuses: long-press to multi-select, Select all, Save from the grid or the preview; saved ones are marked | Done |
 | Settings, remembered between launches: theme, default quality, audio format, downloads at once, auto-save statuses, copied-link offers, site and quality under titles, engine update | Done |
 | Default quality downloads straight away (picker still one tap away), status auto-save, weekly engine update on Wi-Fi when idle | Done |
